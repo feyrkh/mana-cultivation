@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3 uid="uid://bi0gwuo1jmhx2"]
+
+[ext_resource type="Script" uid="uid://drdodrhev4jfa" path="res://demo/AutoFormBuilderDemo.gd" id="1_t6yfn"]
+
+[node name="ModelRendererDemo" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_t6yfn")
+metadata/_custom_type_script = "uid://drdodrhev4jfa"
