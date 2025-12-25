@@ -4,6 +4,44 @@ extends VBoxContainer
 
 signal edit_confirmed(models: Dictionary)
 signal edit_cancelled()
+# ============================================
+# Custom Scene Lifecycle Methods Reference
+# ============================================
+# Your custom scene can implement these methods:
+#
+# func before_add_to_form(model, value, schema: Dictionary, field_name: String):
+#     # Called before the scene is added to the form
+#     # Use this to initialize your scene with the current value
+#     # Parameters:
+#     #   - model: The parent model object
+#     #   - value: The current value of the field
+#     #   - schema: The field's schema dictionary
+#     #   - field_name: The name of the field being edited
+#
+# func after_add_to_form(model, value, schema: Dictionary, field_name: String):
+#     # Called after the scene has been added to the form
+#     # Use this for any setup that requires the scene to be in the tree
+#
+# func on_mode_changed(is_edit_mode: bool):
+#     # Called when the form switches between view and edit mode
+#     # Use this to show/hide edit controls
+#
+# func before_save(model, field_name: String):
+#     # Called before saving changes
+#     # Use this to validate or prepare data
+#
+# func get_field_value():
+#     # Called to retrieve the edited value from your scene
+#     # Must return the new value to save to the model
+#     return your_edited_value
+#
+# func after_save(model, field_name: String):
+#     # Called after changes have been saved
+#     # Use this for cleanup or notifications
+#
+# func before_cancel():
+#     # Called before canceling changes
+#     # Use this to reset your scene's state
 
 # Configuration
 var edit_mode: bool = false
@@ -145,6 +183,11 @@ func _set_property_value(model, prop_name: String, value) -> void:
 
 # Build a single field
 func _build_field(field_path: String, prop_name: String, value, field_schema: Dictionary) -> void:
+	# Check if a custom scene is provided
+	if field_schema.has("scene"):
+		_build_custom_scene_field(field_path, prop_name, value, field_schema)
+		return
+	
 	# Check if field is readonly
 	var is_readonly = field_schema.get("readonly", false)
 	var label_text = field_schema.get("label", prop_name.capitalize())
@@ -181,6 +224,44 @@ func _build_field(field_path: String, prop_name: String, value, field_schema: Di
 	
 	# Set initial visibility
 	_update_field_visibility(field_path)
+
+# Build a field using a custom scene
+func _build_custom_scene_field(field_path: String, prop_name: String, value, field_schema: Dictionary) -> void:
+	var scene_path = field_schema["scene"]
+	
+	# Parse field path to get model
+	var parts = field_path.split(".")
+	var model_key = parts[0]
+	var model = models.get(model_key)
+	
+	# Load the scene
+	var scene = load(scene_path)
+	if scene == null:
+		push_error("Failed to load custom scene: " + scene_path)
+		return
+	
+	# Instantiate the scene
+	var instance = scene.instantiate()
+	
+	# Call pre_add lifecycle hook
+	if instance.has_method("before_add_to_form"):
+		instance.before_add_to_form(model, value, field_schema, prop_name)
+	
+	# Add to form
+	form_container.add_child(instance)
+	
+	# Call post_add lifecycle hook
+	if instance.has_method("after_add_to_form"):
+		instance.after_add_to_form(model, value, field_schema, prop_name)
+	
+	# Store reference with custom scene flag
+	field_nodes[field_path] = {
+		"view": instance,
+		"edit": instance,
+		"readonly": false,
+		"custom_scene": true,
+		"instance": instance
+	}
 
 # Create view node based on value type
 func _create_view_node(value, schema: Dictionary) -> Control:
@@ -397,8 +478,18 @@ func _update_field_visibility(field_path: String) -> void:
 		return
 	if field_path == '_array_forms':
 		return
-		
+	
 	var nodes = field_nodes[field_path]
+	
+	# Handle custom scenes differently
+	if nodes.get("custom_scene", false):
+		var instance = nodes["instance"]
+		# Call lifecycle hook for mode change
+		if instance.has_method("on_mode_changed"):
+			instance.on_mode_changed(edit_mode)
+		# Custom scenes handle their own visibility
+		return
+	
 	var view_node = nodes["view"]
 	var edit_node = nodes["edit"]
 	var is_readonly = nodes["readonly"]
@@ -440,6 +531,32 @@ func _on_confirm_pressed() -> void:
 			continue  # Skip the array forms storage
 			
 		var nodes = field_nodes[field_path]
+		
+		# Handle custom scenes
+		if nodes.get("custom_scene", false):
+			var instance = nodes["instance"]
+			# Parse field path
+			var parts = field_path.split(".")
+			if parts.size() < 2:
+				continue
+			var model_key = parts[0]
+			var prop_name = parts[1]
+			
+			if models.has(model_key):
+				# Call before_save lifecycle hook
+				if instance.has_method("before_save"):
+					instance.before_save(models[model_key], prop_name)
+				
+				# Get updated value from custom scene
+				if instance.has_method("get_field_value"):
+					var new_value = instance.get_field_value()
+					_set_property_value(models[model_key], prop_name, new_value)
+				
+				# Call after_save lifecycle hook
+				if instance.has_method("after_save"):
+					instance.after_save(models[model_key], prop_name)
+			continue
+		
 		if nodes["readonly"] or nodes["edit"] == null:
 			continue
 		
@@ -492,6 +609,16 @@ func _on_confirm_pressed() -> void:
 func _on_cancel_pressed() -> void:
 	if not edit_mode:
 		return
+	
+	# Call before_cancel on custom scenes
+	for field_path in field_nodes.keys():
+		if field_path == "_array_forms":
+			continue
+		var nodes = field_nodes[field_path]
+		if nodes.get("custom_scene", false):
+			var instance = nodes["instance"]
+			if instance.has_method("before_cancel"):
+				instance.before_cancel()
 	
 	# Restore original values
 	models = _deep_copy_models(original_values)

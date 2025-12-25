@@ -13,7 +13,7 @@ func _ready():
 func example_basic_usage():
 	# Create a character
 	var poison = StatusEffect.new(1, "Poison", {"damage": 5})
-	var blessed = StatusEffect.new(1, "Blessed", {"holy": 5})
+	var blessed = StatusEffect.new(1, "Blessed", {"holy": 5, "range": 5000})
 	var hero = Character.new("Feyr", 100, [poison, blessed])
 	
 	# Create the auto form
@@ -21,10 +21,24 @@ func example_basic_usage():
 	add_child(auto_form)
 	
 	# Show the model - that's it!
+	var status_effect_schema = {
+		"id": FormFieldSchema.int_field().with_readonly(true)
+		"data": FormFieldSchema.custom_scene_field("res://modelRenderSystem/DictionaryFormBuilder.tscn")
+	}
+	status_effect_schema.readonly_field("id")
+	var character_schema = {
+		"status_effects": FormFieldSchema.array_field(null, null, status_effect_schema)
+	}
 	auto_form.show_model("hero", hero, {
 		"status_effects": {
 			"show_item_buttons": true,
-			"readonly": true
+			"readonly": true,
+			"item_schema": {
+				"id": {"readonly": true},
+				"data": {
+					"scene": "res://modelRenderSystem/DictionaryFormBuilder.tscn",
+				}
+			}
 		}
 	})
 	
