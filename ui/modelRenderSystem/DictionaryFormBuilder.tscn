@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://byc7evyrhgxty"]
 
-[ext_resource type="Script" uid="uid://8m41iy585oug" path="res://modelRenderSystem/DictionaryFormBuilder.gd" id="1_1du6d"]
+[ext_resource type="Script" uid="uid://8m41iy585oug" path="res://ui/modelRenderSystem/DictionaryFormBuilder.gd" id="1_1du6d"]
 
 [node name="DictionaryFormBuilder" type="VBoxContainer"]
 script = ExtResource("1_1du6d")

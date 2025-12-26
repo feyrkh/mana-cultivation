@@ -1,0 +1,215 @@
+# Magical Research Minigame — Rules Summary
+
+## 1. Research Session Overview
+
+- Research is performed in sessions
+- Each session has:
+  - Limited Focus (hard time limit)
+  - Limited Insight (soft power)
+  - A Cohesion value representing theory stability
+- Sessions end when:
+  - Focus reaches 0
+  - Player voluntarily ends
+  - Cohesion collapses catastrophically
+
+---
+
+## 2. Spell Setup
+
+- Player selects a Spell Intent
+  - Domain (eg Light)
+  - Constraints (eg Low intensity, Non-combat)
+  - Desired effects
+- Spell Intent determines:
+  - Tile pool
+  - Minimum cohesion required at completion
+  - Minimum theory density requirements
+
+---
+
+## 3. Board
+
+- Fixed 3×3 grid (expandable later)
+- Tiles are placed orthogonally
+- Adjacency is orthogonal only
+- Board state persists between sessions
+
+---
+
+## 4. Resources
+
+### Focus
+- Starts at 10 per session
+- −1 per turn
+- Spent on most actions
+- When Focus reaches 0, session ends immediately
+
+### Insight
+- Starts at 2 per session
+- Soft cap at 6
+- Gained from integration and some weather effects
+- Spent on integration, stabilization, and powerful actions
+
+### Cohesion
+- Starts at 10
+- Represents theory health
+- Reduced by volatility, adjacency pressure, and some weather
+- Required to remain above a threshold to complete a spell
+
+---
+
+## 5. Tiles
+
+Each tile has:
+- Name
+- Base mechanical effect
+- Tag:
+  - Consensus
+  - Tenuous
+  - Crackpot
+- Base volatility (1–3)
+- Integration Level (integer)
+- Maximum Integration Level determined by tag
+
+### Maximum Integration Levels
+
+| Tag        | Max Level |
+|------------|-----------|
+| Consensus  | 3         |
+| Tenuous    | 2         |
+| Crackpot   | 1         |
+
+---
+
+## 6. Progressive Integration
+
+- Tiles begin at Integration Level 0
+- Integration Level determines:
+  - Effect strength
+  - Volatility
+- Effect scaling:
+  - effect = base_effect × (integration_level / max_level)
+- Volatility scaling:
+  - volatility = base_volatility × (1 − integration_level / max_level)
+
+---
+
+## 7. Integration Actions
+
+### Deepen Integration
+- Cost: 1 Focus + Insight (scales by tag and level)
+- Increases Integration Level by +1
+- Cohesion change per level:
+  - Consensus: +1
+  - Tenuous: 0
+  - Crackpot: −1
+- Crackpot tiles can only be integrated once
+
+### Per-Session Limits
+- Maximum total integration levels gained per session (eg 3)
+- Integration Insight costs increase on heavily refined spells
+
+---
+
+## 8. Placement
+
+### Place Tile
+- Cost: 1 Focus
+- Tile is placed at Integration Level 0
+- Cohesion − base volatility immediately
+
+---
+
+## 9. Adjacency Rules
+
+### Adjacency Pressure (per turn)
+
+| Pair                  | Effect          |
+|-----------------------|-----------------|
+| Consensus–Consensus   | +1 cohesion     |
+| Consensus–Tenuous     | 0               |
+| Tenuous–Tenuous       | 0               |
+| Consensus–Crackpot    | −1 cohesion     |
+| Tenuous–Crackpot      | −1 cohesion     |
+| Crackpot–Crackpot     | −2 cohesion     |
+
+- Unintegrated tiles apply full penalty
+- Integrated tiles apply 50% penalty (rounded down, minimum −1 if any penalty exists)
+
+### Adjacency Effect Bonuses
+- Adjacent Consensus tile: +10% effect
+- Adjacent Crackpot tile: +20% effect
+- Adjacent Tenuous tile: no bonus
+
+---
+
+## 10. Actions
+
+### Examine Source
+- Cost: 1 Focus
+- Draw 2 random tiles, keep 1
+
+### Stabilize Theory
+- Cost: 1 Focus + 1 Insight
+- Cohesion +3
+
+### Speculative Leap
+- Cost: 2 Focus + 2 Insight
+- Generate a powerful Crackpot tile
+- Cohesion −2
+
+---
+
+## 11. Weather (Epistemic Conditions)
+
+- Weather changes every 3 turns
+- Weather effects apply at start of turn
+- Examples:
+  - Inspired: +1 Insight
+  - Dogmatic: Integration costs −1 Insight
+  - Chaotic: Crackpot adjacency penalties doubled
+  - Stagnant: Examine Source yields only 1 tile
+- Weather cannot be skipped or waited out safely
+
+---
+
+## 12. Turn Structure
+
+Each turn:
+1. Weather effects apply
+2. Adjacency pressure is applied
+3. Player performs one action
+4. Focus −1
+5. Check for session end
+
+---
+
+## 13. Spell Completion Requirements
+
+To complete a spell:
+- Minimum Cohesion (spell-dependent, eg ≥6)
+- Minimum integrated tile count (eg ≥4)
+- Minimum adjacency links (eg ≥5)
+- Final cohesion check includes persistent penalties
+
+---
+
+## 14. Session End and Persistence
+
+At session end:
+- Board layout is saved
+- Integration levels are saved
+- Cohesion resets to:
+  - min(starting cohesion, final cohesion + 2)
+- Unintegrated tiles may be lost on collapse
+- Partial success preserves reusable theory tiles
+
+---
+
+## 15. Design Constraints (Intentional)
+
+- No action fully removes risk
+- Crackpot ideas are powerful but permanently destabilizing
+- Perfect stability is asymptotic
+- Revisiting spells is expected and meaningful
+- Small, safe spells are reliable but weak
