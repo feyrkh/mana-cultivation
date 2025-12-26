@@ -1,15 +1,37 @@
-# AutoFormBuilder.gd
 class_name AutoFormBuilder
 extends VBoxContainer
 
 signal edit_confirmed(models: Dictionary)
 signal edit_cancelled()
+
+# Quickstart:
+# ## STEP 1: Add a schema to your models, if needed. Each entry in the map is a field name that needs
+# ##         special handling - you can skip fields that are ok with default handling.
+# static var DEFAULT_SCHEMA:Dictionary[String, FormFieldSchema] = {
+#   "status_effects": FormFieldSchema.array_field(StatusEffect.DEFAULT_SCHEMA).with_readonly(true)
+# }
+# func get_schema() -> Dictionary[String, FormFieldSchema]:
+#   return DEFAULT_SCHEMA
+# ## STEP 2: Define custom scenes if needed, and use `with_scene()` to set them in your schema
+# ##         Don't forget to check the lifecycle methods below to do pre/post-add setup
+# ## STEP 3: Create the auto form
+# var auto_form = AutoFormBuilder.new()
+# add_child(auto_form)
+# auto_form.show_model("hero", hero) # render a single model
+# auto_form.show_models({"hero": hero, "villain": villain}) # render multiple models
+# You can optionally append custom schemas to override the default:
+# auto_form.show_model("hero", hero, {"id": FormFieldSchema.int_field()}) # render a single model with custom schema
+# auto_form.show_models({"hero": hero, "villain": villain}), {"hero": hero_schema, "villain": villain_schema}) # render multiple models
+# ## STEP 4: Optionally, connect any signals you need (see below)
+# auto_form.edit_confirmed.connect(func(models): 
+#   print("Hero updated: ", models["hero"].name, " HP: ", models["hero"].hp)
+# )
 # ============================================
 # Custom Scene Lifecycle Methods Reference
 # ============================================
 # Your custom scene can implement these methods:
 #
-# func before_add_to_form(model, value, schema: Dictionary, field_name: String):
+# func before_add_to_form(model, value, schema: Dictionary[String, FormFieldSchema], field_name: String):
 #     # Called before the scene is added to the form
 #     # Use this to initialize your scene with the current value
 #     # Parameters:
@@ -18,7 +40,7 @@ signal edit_cancelled()
 #     #   - schema: The field's schema dictionary
 #     #   - field_name: The name of the field being edited
 #
-# func after_add_to_form(model, value, schema: Dictionary, field_name: String):
+# func after_add_to_form(model, value, schema: Dictionary[String, FormFieldSchema], field_name: String):
 #     # Called after the scene has been added to the form
 #     # Use this for any setup that requires the scene to be in the tree
 #
@@ -48,6 +70,8 @@ var edit_mode: bool = false
 var models: Dictionary = {}
 var original_values: Dictionary = {}
 var schemas: Dictionary = {}
+## If true, only fields which are mentioned in the schema will be rendered
+@export var explicit_fields_only: bool = false
 
 # UI References
 var form_container: VBoxContainer
@@ -113,7 +137,12 @@ func _rebuild_form() -> void:
 	# Build form for each model
 	for model_key in models.keys():
 		var model = models[model_key]
-		var schema = schemas.get(model_key, {})
+		var schema = schemas.get(model_key, null)
+		if schema == null:
+			if model.has_method("get_schema"):
+				schema = model.get_schema()
+			if schema == null:
+				schema = {}
 		_build_model_section(model_key, model, schema)
 	
 	# Update button visibility
@@ -137,8 +166,14 @@ func _build_model_section(model_key: String, model, schema: Dictionary) -> void:
 	# Build field for each property
 	for prop_name in properties:
 		var field_path = model_key + "." + prop_name
+		if explicit_fields_only and !schema.has(prop_name):
+			continue
+		var field_schema = schema.get(prop_name, FormFieldSchema.DEFAULT_SCHEMA)
+		if field_schema.hidden:
+			continue
 		var value = _get_property_value(model, prop_name)
-		var field_schema = schema.get(prop_name, {})
+		#if field_schema is FormFieldSchema:
+		#	field_schema = field_schema.to_dict()
 		
 		_build_field(field_path, prop_name, value, field_schema)
 
@@ -182,15 +217,15 @@ func _set_property_value(model, prop_name: String, value) -> void:
 		model.set(prop_name, value)
 
 # Build a single field
-func _build_field(field_path: String, prop_name: String, value, field_schema: Dictionary) -> void:
+func _build_field(field_path: String, prop_name: String, value, field_schema: FormFieldSchema) -> void:
 	# Check if a custom scene is provided
-	if field_schema.has("scene"):
+	if field_schema.scene:
 		_build_custom_scene_field(field_path, prop_name, value, field_schema)
 		return
 	
 	# Check if field is readonly
-	var is_readonly = field_schema.get("readonly", false)
-	var label_text = field_schema.get("label", prop_name.capitalize())
+	var is_readonly = field_schema.readonly
+	var label_text = field_schema.label if field_schema.label else prop_name.capitalize()
 	
 	# Create row container
 	var row = HBoxContainer.new()
@@ -226,8 +261,8 @@ func _build_field(field_path: String, prop_name: String, value, field_schema: Di
 	_update_field_visibility(field_path)
 
 # Build a field using a custom scene
-func _build_custom_scene_field(field_path: String, prop_name: String, value, field_schema: Dictionary) -> void:
-	var scene_path = field_schema["scene"]
+func _build_custom_scene_field(field_path: String, prop_name: String, value, field_schema: FormFieldSchema) -> void:
+	var scene_path = field_schema.scene
 	
 	# Parse field path to get model
 	var parts = field_path.split(".")
@@ -264,7 +299,7 @@ func _build_custom_scene_field(field_path: String, prop_name: String, value, fie
 	}
 
 # Create view node based on value type
-func _create_view_node(value, schema: Dictionary) -> Control:
+func _create_view_node(value, schema: FormFieldSchema) -> Control:
 	# Handle arrays specially
 	if value is Array and not value.is_empty():
 		# Check if array contains objects/dictionaries
@@ -277,8 +312,8 @@ func _create_view_node(value, schema: Dictionary) -> Control:
 	return label
 
 # Create view for array of objects
-func _create_array_view(array: Array, schema: Dictionary) -> Control:
-	var array_layout = schema.get("array_layout", "vbox")
+func _create_array_view(array: Array, schema: FormFieldSchema) -> Control:
+	var array_layout = schema.array_layout
 	var container: BoxContainer
 	
 	if array_layout == "hbox":
@@ -293,7 +328,7 @@ func _create_array_view(array: Array, schema: Dictionary) -> Control:
 	container.add_child(array_label)
 	
 	# Create sub-form for each item
-	var item_schema = schema.get("item_schema", {})
+	var item_schema = schema.item_schema
 	for i in array.size():
 		var item = array[i]
 		var item_form = AutoFormBuilder.new()
@@ -310,19 +345,19 @@ func _create_array_view(array: Array, schema: Dictionary) -> Control:
 		
 		# Hide the buttons on sub-forms by default
 		if item_form.button_container:
-			item_form.button_container.visible = schema.get("show_item_buttons", false)
+			item_form.button_container.visible = schema.show_item_buttons
 	
 	return container
 
 # Create edit node based on value type and schema
-func _create_edit_node(value, schema: Dictionary) -> Control:
+func _create_edit_node(value, schema: FormFieldSchema) -> Control:
 	# Handle arrays specially
 	if value is Array and not value.is_empty():
 		var first_item = value[0]
 		if first_item is Object or first_item is Dictionary:
 			return _create_array_edit(value, schema)
 	
-	var control_type = schema.get("type", "auto")
+	var control_type = schema.type
 	
 	# Auto-detect type if not specified
 	if control_type == "auto":
@@ -343,17 +378,17 @@ func _create_edit_node(value, schema: Dictionary) -> Control:
 		
 		"int":
 			var spin_box = SpinBox.new()
-			spin_box.min_value = schema.get("min", -999999)
-			spin_box.max_value = schema.get("max", 999999)
-			spin_box.step = schema.get("step", 1)
+			spin_box.min_value = schema.min
+			spin_box.max_value = schema.max
+			spin_box.step = schema.step
 			spin_box.value = int(value) if value != null else 0
 			return spin_box
 		
 		"float":
 			var spin_box = SpinBox.new()
-			spin_box.min_value = schema.get("min", -999999.0)
-			spin_box.max_value = schema.get("max", 999999.0)
-			spin_box.step = schema.get("step", 0.1)
+			spin_box.min_value = schema.min
+			spin_box.max_value = schema.max
+			spin_box.step = schema.step
 			spin_box.value = float(value) if value != null else 0.0
 			spin_box.allow_greater = true
 			spin_box.allow_lesser = true
@@ -366,9 +401,9 @@ func _create_edit_node(value, schema: Dictionary) -> Control:
 		
 		"slider":
 			var slider = HSlider.new()
-			slider.min_value = schema.get("min", 0)
-			slider.max_value = schema.get("max", 100)
-			slider.step = schema.get("step", 1)
+			slider.min_value = schema.min
+			slider.max_value = schema.max
+			slider.step = schema.step
 			slider.value = float(value) if value != null else 0
 			slider.custom_minimum_size.x = 200
 			return slider
@@ -381,8 +416,8 @@ func _create_edit_node(value, schema: Dictionary) -> Control:
 			return line_edit
 
 # Create edit view for array of objects
-func _create_array_edit(array: Array, schema: Dictionary) -> Control:
-	var array_layout = schema.get("array_layout", "vbox")
+func _create_array_edit(array: Array, schema: FormFieldSchema) -> Control:
+	var array_layout = schema.array_layout
 	var container: BoxContainer
 	
 	if array_layout == "hbox":
@@ -397,7 +432,7 @@ func _create_array_edit(array: Array, schema: Dictionary) -> Control:
 	container.add_child(array_label)
 	
 	# Create sub-form for each item
-	var item_schema = schema.get("item_schema", {})
+	var item_schema = schema.item_schema
 	for i in array.size():
 		var item = array[i]
 		var item_form = AutoFormBuilder.new()
@@ -415,7 +450,7 @@ func _create_array_edit(array: Array, schema: Dictionary) -> Control:
 		
 		# Hide the buttons on sub-forms
 		if item_form.button_container:
-			item_form.button_container.visible = schema.get("show_item_buttons", false)
+			item_form.button_container.visible = schema.show_item_buttons
 		
 		# Store reference for reading back values
 		if not field_nodes.has("_array_forms"):
@@ -425,19 +460,18 @@ func _create_array_edit(array: Array, schema: Dictionary) -> Control:
 	return container
 
 # Auto-detect appropriate control type
-func _detect_control_type(value, schema: Dictionary) -> String:
+func _detect_control_type(value, schema: FormFieldSchema) -> String:
 	if value is bool:
 		return "bool"
 	elif value is int:
-		if schema.has("min") and schema.has("max"):
-			var range_size = schema["max"] - schema["min"]
-			if range_size <= 100:
-				return "slider"
+		var range_size = schema["max"] - schema["min"]
+		if range_size <= 100:
+			return "slider"
 		return "int"
 	elif value is float:
 		return "float"
 	elif value is String:
-		if schema.get("multiline", false):
+		if schema.multiline:
 			return "multiline"
 		return "string"
 	elif value is Array:
@@ -448,7 +482,7 @@ func _detect_control_type(value, schema: Dictionary) -> String:
 		return "string"
 
 # Format value for display
-func _format_value_for_display(value, schema: Dictionary) -> String:
+func _format_value_for_display(value, schema: FormFieldSchema) -> String:
 	if value == null:
 		return "(empty)"
 	elif value is Array:
@@ -631,12 +665,12 @@ func _on_cancel_pressed() -> void:
 	edit_cancelled.emit()
 
 # Get schema for a specific field
-func _get_field_schema(model_key: String, prop_name: String) -> Dictionary:
+func _get_field_schema(model_key: String, prop_name: String) -> FormFieldSchema:
 	if schemas.has(model_key):
 		var model_schema = schemas[model_key]
 		if model_schema.has(prop_name):
 			return model_schema[prop_name]
-	return {}
+	return FormFieldSchema.DEFAULT_SCHEMA
 
 # Get value from a control node
 func _get_node_value(node: Control):

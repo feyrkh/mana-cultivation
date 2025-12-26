@@ -18,29 +18,23 @@ func example_basic_usage():
 	
 	# Create the auto form
 	var auto_form = AutoFormBuilder.new()
+	auto_form.explicit_fields_only = false
 	add_child(auto_form)
 	
-	# Show the model - that's it!
-	var status_effect_schema = {
-		"id": FormFieldSchema.int_field().with_readonly(true)
-		"data": FormFieldSchema.custom_scene_field("res://modelRenderSystem/DictionaryFormBuilder.tscn")
-	}
-	status_effect_schema.readonly_field("id")
-	var character_schema = {
-		"status_effects": FormFieldSchema.array_field(null, null, status_effect_schema)
-	}
-	auto_form.show_model("hero", hero, {
-		"status_effects": {
-			"show_item_buttons": true,
-			"readonly": true,
-			"item_schema": {
-				"id": {"readonly": true},
-				"data": {
-					"scene": "res://modelRenderSystem/DictionaryFormBuilder.tscn",
-				}
-			}
-		}
-	})
+	#auto_form.show_model("hero", hero, {})
+	auto_form.show_models({"hero": hero})
+	#auto_form.show_model("hero", hero, {
+		#"status_effects": {
+			#"show_item_buttons": true,
+			#"readonly": true,
+			#"item_schema": {
+				#"id": {"readonly": true},
+				#"data": {
+					#"scene": "res://modelRenderSystem/DictionaryFormBuilder.tscn",
+				#}
+			#}
+		#}
+	#})
 	
 	# Connect to signals if you want to know when changes happen
 	auto_form.edit_confirmed.connect(func(models): 

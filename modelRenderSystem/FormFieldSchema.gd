@@ -2,10 +2,14 @@
 # Helper class for defining AutoFormBuilder field schemas with autocomplete
 class_name FormFieldSchema
 extends RefCounted
+static var DEFAULT_SCHEMA = FormFieldSchema.new()
 
 # ============================================
 # Basic Field Properties
 # ============================================
+
+## Should the field be rendered?
+var hidden: bool = false
 
 ## Display label for the field (defaults to capitalized field name)
 var label: String = ""
@@ -45,7 +49,7 @@ var multiline: bool = false
 var array_layout: String = "vbox"
 
 ## Schema to apply to each item in the array
-var item_schema: FormFieldSchema = null
+var item_schema: Dictionary[String, FormFieldSchema] = {}
 
 ## If true, shows edit buttons on individual array items
 var show_item_buttons: bool = false
@@ -66,6 +70,84 @@ var scene: String = ""
 ## Example: ["name", "level", "hp"] - only these fields will be shown in this order
 var fields: Array[String] = []
 
+
+# ============================================
+# Builder Methods
+# ============================================
+
+func with_hidden(p_hidden: bool) -> FormFieldSchema:
+	hidden = p_hidden
+	return self
+
+## Set the label for this field
+func with_label(p_label: String) -> FormFieldSchema:
+	label = p_label
+	return self
+
+## Set the control type
+func with_type(p_type: String) -> FormFieldSchema:
+	type = p_type
+	return self
+
+## Mark field as readonly
+func with_readonly(p_readonly: bool = true) -> FormFieldSchema:
+	readonly = p_readonly
+	return self
+
+## Set minimum value for numeric fields
+func with_min(p_min: float) -> FormFieldSchema:
+	min = p_min
+	return self
+
+## Set maximum value for numeric fields
+func with_max(p_max: float) -> FormFieldSchema:
+	max = p_max
+	return self
+
+## Set step size for numeric fields
+func with_step(p_step: float) -> FormFieldSchema:
+	step = p_step
+	return self
+
+## Set min, max, and step in one call
+func with_range(p_min: float, p_max: float, p_step: float = 1.0) -> FormFieldSchema:
+	min = p_min
+	max = p_max
+	step = p_step
+	return self
+
+## Enable multiline for string fields
+func with_multiline(p_multiline: bool = true) -> FormFieldSchema:
+	multiline = p_multiline
+	if p_multiline:
+		type = "multiline"
+	return self
+
+## Set array layout
+func with_array_layout(p_layout: String) -> FormFieldSchema:
+	array_layout = p_layout
+	return self
+
+## Set item schema for arrays
+func with_item_schema(p_item_schema: Dictionary[String, FormFieldSchema]) -> FormFieldSchema:
+	item_schema = p_item_schema
+	return self
+
+## Show buttons on array items
+func with_item_buttons(p_show: bool = true) -> FormFieldSchema:
+	show_item_buttons = p_show
+	return self
+
+## Set custom scene path
+func with_scene(p_scene: String) -> FormFieldSchema:
+	scene = p_scene
+	return self
+
+## Set fields list for model-level schema
+func with_fields(p_fields: Array[String]) -> FormFieldSchema:
+	fields = p_fields
+	return self
+	
 # ============================================
 # Helper Methods
 # ============================================
@@ -74,9 +156,9 @@ var fields: Array[String] = []
 func to_dict() -> Dictionary:
 	var result = {}
 	
-	if label != "":
+	if label != "" and label != null:
 		result["label"] = label
-	if type != "auto":
+	if type != "auto" :
 		result["type"] = type
 	if readonly:
 		result["readonly"] = readonly
@@ -91,7 +173,7 @@ func to_dict() -> Dictionary:
 	if array_layout != "vbox":
 		result["array_layout"] = array_layout
 	if not item_schema.is_empty():
-		result["item_schema"] = item_schema.to_dict()
+		result["item_schema"] = item_schema
 	if show_item_buttons:
 		result["show_item_buttons"] = show_item_buttons
 	if scene != "":
@@ -154,11 +236,8 @@ static func readonly_field(p_label: String = "") -> FormFieldSchema:
 	return schema
 
 ## Create a schema for an array field
-static func array_field(p_label: String = "", p_layout: String = "vbox", p_item_schema: FormFieldSchema = null) -> FormFieldSchema:
-	var schema = FormFieldSchema.new()
-	schema.label = p_label
-	schema.array_layout = p_layout
-	schema.item_schema = p_item_schema
+static func array_field(p_item_schema: Dictionary[String, FormFieldSchema] = {}) -> FormFieldSchema:
+	var schema = FormFieldSchema.new().with_item_schema(p_item_schema)
 	return schema
 
 ## Create a schema for a custom scene field
@@ -275,8 +354,6 @@ static func example_array_schema() -> Dictionary:
 	
 	return {
 		"status_effects": FormFieldSchema.array_field(
-			"Status Effects",
-			"vbox",
 			item_schema
 		).to_dict()
 	}
@@ -302,8 +379,6 @@ static func example_character_schema() -> Dictionary:
 		"name": FormFieldSchema.string_field("Name").to_dict(),
 		"hp": FormFieldSchema.int_field("HP", 0, 999).to_dict(),
 		"status_effects": FormFieldSchema.array_field(
-			"Status Effects",
-			"vbox",
 			status_effect_schema
 		).to_dict()
 	}

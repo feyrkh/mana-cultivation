@@ -2,6 +2,13 @@
 class_name Character
 extends RefCounted
 
+static var DEFAULT_SCHEMA:Dictionary[String, FormFieldSchema] = {
+	"status_effects": FormFieldSchema.array_field(StatusEffect.DEFAULT_SCHEMA).with_readonly(true),
+	"hp": FormFieldSchema.int_field().with_hidden(false)
+}
+func get_schema() -> Dictionary[String, FormFieldSchema]:
+	return DEFAULT_SCHEMA
+
 var name: String
 var hp: int
 var status_effects: Array[StatusEffect]
