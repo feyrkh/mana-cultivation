@@ -14,7 +14,8 @@ static func to_dict(value, skip_to_dict_for_registered:bool = false) -> Variant:
 	# Object with to_dict method - use it
 	if value is Object and value is not RegisteredObject and value.has_method("to_dict"):
 		return value.to_dict()
-	if value is RegisteredObject:
+	if value and value is RegisteredObject:
+		value = value.get_canonical()
 		if not skip_to_dict_for_registered:
 			return value.to_dict()
 		else:
