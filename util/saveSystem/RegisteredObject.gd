@@ -60,7 +60,7 @@ func get_canonical() -> RegisteredObject:
 func to_dict() -> Dictionary:
 	var result = {
 		"__class__": get_type_name(),
-		"__id__": get_id()  # Ensure ID is assigned before saving
+		"__id__": get_canonical().get_id()  # Ensure ID is assigned before saving
 	}
 	return result
 

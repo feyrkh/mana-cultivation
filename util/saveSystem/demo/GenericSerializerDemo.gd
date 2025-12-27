@@ -22,12 +22,14 @@ func demo_6_real_example():
 	spellform.block_slot(Vector2i(0, 0))
 	spellform.place_tile(Vector2i(1,1), light_tile)
 	spellform.place_tile(Vector2i(2, 2), dark_tile)
-	SaveSystem.save_game(InstanceRegistry.get_registry(), "spellform_test", "instance_registry", true)
+	SpellDomain.new("Unused").get_canonical()
 	SaveSystem.save_game(spellform, "spellform_test", "spellform")
+	SaveSystem.save_game(InstanceRegistry.get_registry(), "spellform_test", "instance_registry", true)
 	var loaded_registry = LoadSystem.load_game("spellform_test", "instance_registry")
 	InstanceRegistry.set_registry(loaded_registry)
-	var loaded = LoadSystem.load_game("spellform_test", "spellform")
-	print("Restored: "+JSON.stringify(loaded))
+	var loaded:Spellform = LoadSystem.load_game("spellform_test", "spellform")
+	print("Domain at 1,1: ", loaded.get_tile(Vector2i(1, 1)).domain)
+	print("Domain at 2,2: ", loaded.get_tile(Vector2i(2, 2)).domain)
 	pass
 
 # Demo 1: Simple object without to_dict/from_dict

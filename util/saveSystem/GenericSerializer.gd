@@ -12,8 +12,15 @@ static func to_dict(value, skip_to_dict_for_registered:bool = false) -> Variant:
 		return value
 	
 	# Object with to_dict method - use it
-	if value is Object and (skip_to_dict_for_registered == false or value is not RegisteredObject) and value.has_method("to_dict"):
+	if value is Object and value is not RegisteredObject and value.has_method("to_dict"):
 		return value.to_dict()
+	if value is RegisteredObject:
+		if not skip_to_dict_for_registered:
+			return value.to_dict()
+		else:
+			# After we've serialized our first SerializedObject, all child SerializedObjects should use the normal to_dict
+			# Otherwise we'll end up creating copies of them rather than references
+			return _serialize_generic_object(value, false)
 	
 	# Generic Object - introspect properties
 	if value is Object:

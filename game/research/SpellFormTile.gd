@@ -1,5 +1,5 @@
 class_name SpellformTile
-extends RefCounted
+extends RegisteredObject
 
 var effects: Array[String] = []
 var domain: SpellDomain
