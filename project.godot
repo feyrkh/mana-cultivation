@@ -18,8 +18,7 @@ config/icon="res://icon.svg"
 [autoload]
 
 SaveLoadConfig="*res://util/saveSystem/SaveLoadConfig.gd"
-SpellDomainMgr="*res://data/SpellDomainMgr.gd"
-SpellFormTileMgr="*res://data/SpellFormTileMgr.gd"
+ResourceMgrRegistry="*res://data/ResourceMgrRegistry.gd"
 
 [input]
 

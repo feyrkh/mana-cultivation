@@ -393,7 +393,11 @@ static func _deserialize_generic_object(dict: Dictionary) -> Variant:
 		#	"__id__": 1
 		#}
 		# and we must assume the canonical copies of these objects were already loaded
-		return InstanceRegistry.get_registry().get_instance(dict.get("__class__", {}), dict.get("__id__", -1))
+		var registered_id = dict.get("__id__", "")
+		var cached = InstanceRegistry.get_registry().get_instance(className, registered_id)
+		if !cached:
+			cached = ResourceMgr.get_manager_for(className).load_singleton(registered_id)
+		return cached
 
 	# Use reflection to set properties
 	var properties = dict.get("properties", {})

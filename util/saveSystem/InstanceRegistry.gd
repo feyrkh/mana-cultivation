@@ -48,20 +48,23 @@ func clean_unused() -> void:
 					registry[type].erase(id)
 
 # Register an instance with its type and ID
-func register_instance(type_name: String, id: int, instance) -> void:
+func register_instance(type_name: String, id: String, instance) -> void:
 	if not registry.has(type_name):
 		registry[type_name] = {}
 		_touched[type_name] = {}
-		id_counters[type_name] = id + 1
+		if id.is_valid_int():
+			id_counters[type_name] = int(id) + 1
 	
 	registry[type_name][id] = instance
-	_touched[type_name][id] = true
-	if id_counters[type_name] <= id:
-		id_counters[type_name] = id + 1
-		print("Loaded a ", type_name, " with a higher ID than we've seen before, updating ID to ", id+1)
+	_touched[type_name][id] = true	
+	if id.is_valid_int():
+		var int_id = int(id)
+		if id_counters[type_name] <= int_id:
+			id_counters[type_name] = int_id + 1
+			print("Loaded a ", type_name, " with a higher ID than we've seen before, updating ID to ", int_id+1)
 
 # Get a registered instance by type and ID
-func get_instance(type_name: String, id: int):
+func get_instance(type_name: String, id: String):
 	if not registry.has(type_name):
 		return null
 	if not _touched.has(type_name):
@@ -77,16 +80,16 @@ func has_instance(type_name: String, id: int) -> bool:
 	return registry[type_name].has(id)
 
 # Generate a new ID for a type
-func generate_id(type_name: String) -> int:
+func generate_id(type_name: String) -> String:
 	if not id_counters.has(type_name):
 		id_counters[type_name] = 1
 	
 	var new_id = id_counters[type_name]
 	id_counters[type_name] += 1
-	return new_id
+	return str(new_id)
 
 # Unregister an instance
-func unregister_instance(type_name: String, id: int) -> void:
+func unregister_instance(type_name: String, id: String) -> void:
 	if registry.has(type_name):
 		registry[type_name].erase(id)
 		

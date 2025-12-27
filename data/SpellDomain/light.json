@@ -2,6 +2,6 @@
 	"__class__": "SpellDomain",
 	"properties": {
 		"domain_name": "Light",
-		"id": 1
+		"id": "light"
 	}
 }

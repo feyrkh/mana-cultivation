@@ -3,6 +3,18 @@
 class_name ResourceMgr
 extends Node
 
+static var resource_managers:Dictionary[String, ResourceMgr] = {}
+
+static func get_manager_for(className) -> ResourceMgr:
+	if className is Script:
+		className = className.get_global_name()
+	return resource_managers.get(className, null)
+
+static func register_manager(className, mgr:ResourceMgr):
+	if className is Script:
+		className = className.get_global_name()
+	resource_managers[className] = mgr
+
 # Configuration - override these in subclasses
 var base_path: String = ""
 var file_suffix: String = ".json"
@@ -20,6 +32,8 @@ func _init(p_base_path: String = "", p_file_suffix: String = ".json", p_resource
 	file_suffix = p_file_suffix
 	resource_class = p_resource_class
 	validate_on_index = p_validate_on_index
+	if resource_class:
+		register_manager(resource_class.get_global_name(), self)
 
 # Index the directory to find all matching files
 func index() -> void:

@@ -3,12 +3,12 @@
 	"properties": {
 		"domain": {
 			"__class__": "SpellDomain",
-			"__id__": 1
+			"__id__": "light"
 		},
 		"effects": {
 			"__type__": "Array",
 			"data": []
 		},
-		"id": 1
+		"id": "ponder"
 	}
 }

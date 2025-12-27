@@ -11,41 +11,44 @@ func get_or_clone(entry_name:String, classRef, path_prefix:String, resourceMgr:R
 	var result = resourceMgr.load_singleton(path)
 	if result == null:
 		result = classRef.new()
+	if result is RegisteredObject:
+		result.id = entry_name
 	data[path] = result
 	return result
 
 func update_SpellDomain():
 	## Update these
-	var mgr = SpellDomainMgr
 	var classRef = SpellDomain
 	var entry:SpellDomain
 	## Leave these alone
+	var mgr = ResourceMgr.get_manager_for(classRef)
 	var data = mgr.load_all_data()
 	var prefix = ""
 
 	## Update with new data if needed
-	#entry = get_or_clone("light", classRef, prefix, mgr, data)
-	#entry.domain_name = "Light"
-	#entry = get_or_clone("dark", classRef, prefix, mgr, data)
-	#entry.domain_name = "Dark"
-	#entry = get_or_clone("poison", classRef, prefix, mgr, data)
-	#entry.domain_name = "Poison"
+	entry = get_or_clone("light", classRef, prefix, mgr, data)
+	entry.domain_name = "Light"
+	entry = get_or_clone("dark", classRef, prefix, mgr, data)
+	entry.domain_name = "Dark"
+	entry = get_or_clone("poison", classRef, prefix, mgr, data)
+	entry.domain_name = "Poison"
 	
 	# Save existing data
 	mgr.save_all_data(data)
 
 func update_SpellFormTile():
 	## Update these
-	var mgr = SpellFormTileMgr
 	var classRef = SpellFormTile
 	var entry:SpellFormTile
 	## Leave these alone
+	var mgr = ResourceMgr.get_manager_for(classRef)
 	var data = mgr.load_all_data()
 	var prefix = ""
 
 	## Update with new data if needed
 	entry = get_or_clone("ponder", classRef, prefix, mgr, data)
+	pass
 	#entry.domain = SpellDomainMgr.load_singleton("light")
 	
 	# Save existing data
-	mgr.save_all_data(data)
+	#mgr.save_all_data(data)

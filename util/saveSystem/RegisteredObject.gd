@@ -3,22 +3,22 @@
 class_name RegisteredObject
 extends RefCounted
 
-# The ID of this instance (-1 means unassigned)
-var id: int = -1
+# The ID of this instance ("" means unassigned)
+var id: String = ""
 
 # Get the type name for this class (override in subclasses for custom type names)
 func get_type_name() -> String:
 	return get_script().get_global_name()
 
 # Get the ID of this instance, assigning one if needed
-func get_id() -> int:
-	if id == -1:
+func get_id() -> String:
+	if id == "":
 		_assign_new_id()
 	return id
 
 # Check if this instance has been assigned an ID
 func has_id() -> bool:
-	return id != -1
+	return id != ""
 
 # Assign a new ID from the registry
 func _assign_new_id() -> void:
@@ -27,22 +27,22 @@ func _assign_new_id() -> void:
 	registry.register_instance(get_type_name(), id, self)
 
 # Set the ID directly (used during deserialization)
-func _set_id(id: int) -> void:
-	if id != -1 and id != id:
+func _set_id(id: String) -> void:
+	if id != "" and id != id:
 		# Unregister old ID
 		var registry = InstanceRegistry.get_registry()
 		registry.unregister_instance(get_type_name(), id)
 	
 	id = id
 	
-	if id != -1:
+	if id != "":
 		# Register with new ID
 		var registry = InstanceRegistry.get_registry()
 		registry.register_instance(get_type_name(), id, self)
 
 # Get the canonical instance for this ID, or self if this is canonical
 func get_canonical() -> RegisteredObject:
-	if id == -1:
+	if id == "":
 		_assign_new_id()
 		return self
 	
