@@ -1,4 +1,3 @@
-# TooltipWindow.gd
 # A floating tooltip window that can contain links to nested tooltips
 class_name TooltipWindow
 extends PanelContainer

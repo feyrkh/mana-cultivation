@@ -38,6 +38,9 @@ func _init() -> void:
 	_content_container = Control.new()
 	_content_container.name = "ContentContainer"
 	_content_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	
+	# Set mouse filter to pass so we can handle input even when content is under cursor
+	mouse_filter = Control.MOUSE_FILTER_PASS
 
 func _ready() -> void:
 	# Add the content container to the scene tree
@@ -46,11 +49,13 @@ func _ready() -> void:
 	# Enable clipping to prevent content from overlapping other views
 	clip_contents = true
 	
+	await get_tree().process_frame
 	# Set up initial transform
 	_update_transform()
 	
 	# Enable processing
 	set_process(true)
+	set_process_input(true)
 
 func _gui_input(event: InputEvent) -> void:
 	# Handle zoom
@@ -61,19 +66,36 @@ func _gui_input(event: InputEvent) -> void:
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN and event.pressed:
 			_zoom_at_point(get_local_mouse_position(), -1)
 			accept_event()
-		
-		# Handle pan start/end
-		elif event.button_index == pan_button and enable_pan:
-			if event.pressed:
-				_start_pan(get_local_mouse_position())
-			else:
-				_end_pan()
-			accept_event()
+
+func _input(event: InputEvent) -> void:
+	# Handle pan globally so content doesn't block it
+	if event is InputEventMouseButton:
+		if event.button_index == pan_button and enable_pan:
+			# Check if mouse is over this camera
+			var mouse_pos = get_global_mouse_position()
+			var rect = get_global_rect()
+			if rect.has_point(mouse_pos):
+				if event.pressed:
+					_start_pan(get_local_mouse_position())
+				else:
+					_end_pan()
+				get_viewport().set_input_as_handled()
 	
 	# Handle pan drag
 	elif event is InputEventMouseMotion and _is_panning:
 		_update_pan(get_local_mouse_position())
-		accept_event()
+		get_viewport().set_input_as_handled()
+	
+	# Handle global mouse release to end drag (moved from separate handler)
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
+			if _is_panning:
+				_end_drag()
+				get_viewport().set_input_as_handled()
+
+func _end_drag() -> void:
+	# This was in the old _input handler, keep it for compatibility
+	_end_pan()
 
 func _process(delta: float) -> void:
 	# Apply bounds correction if needed
@@ -130,16 +152,17 @@ func _start_pan(screen_pos: Vector2) -> void:
 	_is_panning = true
 	_pan_start_pos = screen_pos
 	_pan_start_camera_pos = camera_position
+	#print("Starting pan at screen_pos=%s and camera_pos=%s" % [screen_pos, camera_position])
 
 func _update_pan(screen_pos: Vector2) -> void:
 	if not _is_panning:
 		return
-	
 	# Calculate delta in screen space
 	var screen_delta = screen_pos - _pan_start_pos
-	
 	# Convert to world space delta (inverted because we're moving the camera)
 	var world_delta = screen_delta / camera_zoom
+	#print("Screen delta: %s = %s - %s" % [screen_delta, screen_pos, _pan_start_pos])
+	#print("World delta: %s = %s / %s" % [world_delta, screen_delta, camera_zoom])
 	
 	# Update camera position
 	camera_position = _pan_start_camera_pos - world_delta

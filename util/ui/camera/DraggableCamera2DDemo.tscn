@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://da6ijw7www0ep"]
 
-[ext_resource type="Script" uid="uid://dxjmh8dr3ictm" path="res://ui/camera/DraggableCamera2DDemo.gd" id="1"]
+[ext_resource type="Script" uid="uid://dxjmh8dr3ictm" path="res://util/ui/camera/DraggableCamera2DDemo.gd" id="1"]
 
 [node name="Camera2DDemo" type="Control"]
 layout_mode = 3

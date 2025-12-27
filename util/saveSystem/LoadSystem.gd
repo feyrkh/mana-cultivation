@@ -1,16 +1,12 @@
-# LoadSystem.gd
 class_name LoadSystem
 extends RefCounted
 
 const BASE_SAVE_PATH: String = "user://saves/"
 
-# Class registry for deserialization
-static var class_registry: Dictionary = {
-	"StatusEffect": StatusEffect,
-	"Character": Character
-}
+# Class registry for deserialization (optional fallback)
+static var class_registry: Dictionary = {}
 
-# Register a custom class for deserialization
+# Register a custom class for deserialization (optional)
 static func register_class(className: String, class_ref) -> void:
 	class_registry[className] = class_ref
 
@@ -117,14 +113,60 @@ static func _load_from_binary(file_path: String) -> Array:
 	else:
 		return [data]
 
+# Resolve a class reference from a class name string
+static func _resolve_class(className: String):
+	# First, check the manual registry (for backwards compatibility)
+	if class_registry.has(className):
+		return class_registry[className]
+	
+	# Try to get the class from the global scope using ClassDB
+	# Note: This works for classes registered with class_name
+	if ClassDB.class_exists(className):
+		# ClassDB contains built-in classes, but custom classes need different approach
+		# For built-in classes:
+		var instance = ClassDB.instantiate(className)
+		if instance != null:
+			var class_ref = instance.get_script()
+			instance.free() if instance is Object else null
+			return class_ref
+	
+	# Try using the global script class registry
+	# In Godot 4, classes with class_name are available globally
+	var global_class = _get_global_class(className)
+	if global_class != null:
+		return global_class
+	
+	return null
+
+# Get a global script class by name
+static func _get_global_class(className: String):
+	# In Godot 4, we can access script classes through ProjectSettings
+	# Get the list of global script classes
+	var global_classes = ProjectSettings.get_setting("_global_script_classes", [])
+	
+	for class_info in global_classes:
+		if class_info.get("class", "") == className:
+			var script_path = class_info.get("path", "")
+			if script_path != "":
+				return load(script_path)
+	
+	return null
+
 # Deserialize an object from dictionary
 static func _deserialize_object(dict: Dictionary):
 	var className = dict.get("__class__", "")
 	
-	if class_registry.has(className):
-		var class_ref = class_registry[className]
-		if class_ref.has_method("from_dict"):
-			return class_ref.from_dict(dict)
+	# Resolve the class reference
+	var class_ref = _resolve_class(className)
 	
-	push_warning("Unknown class for deserialization: " + className)
+	if class_ref != null and class_ref.has_method("from_dict"):
+		return class_ref.from_dict(dict)
+	
+	# If resolution failed, provide helpful error message
+	if class_ref == null:
+		push_warning("Could not resolve class for deserialization: " + className + 
+					". Make sure the class is defined with 'class_name' or registered manually.")
+	else:
+		push_warning("Class '" + className + "' found but missing from_dict() method")
+	
 	return null

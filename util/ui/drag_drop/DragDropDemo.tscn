@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://ci6rxuokylx7i"]
 
-[ext_resource type="Script" uid="uid://pflefdlsohj5" path="res://ui/drag_drop/DragDropDemo.gd" id="1_htsaw"]
+[ext_resource type="Script" uid="uid://pflefdlsohj5" path="res://util/ui/drag_drop/DragDropDemo.gd" id="1_htsaw"]
 
 [node name="DragDropDemo" type="Control"]
 layout_mode = 3

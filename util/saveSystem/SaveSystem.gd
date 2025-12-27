@@ -77,7 +77,18 @@ static func _serialize_value(value):
 			result.append(_serialize_value(item))
 		return result
 	elif value.has_method("to_dict"):
-		return value.to_dict()
+		if value.has_method("pre_save"):
+			value.pre_save()
+		var result = value.to_dict()
+		if value.has_method("post_save"):
+			value.post_save()
+		return result
 	else:
-		push_warning("Unknown type during serialization: " + str(typeof(value)))
-		return str(value)
+		if value.has_method("pre_save"):
+			value.pre_save()
+		var result = GenericSerializer.to_dict(value)
+		if value.has_method("post_save"):
+			value.post_save()
+		if value.has_method("post_save"):
+			value.post_save()
+		return result

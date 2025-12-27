@@ -17,7 +17,7 @@ config/icon="res://icon.svg"
 
 [autoload]
 
-SaveLoadConfig="*res://saveSystem/SaveLoadConfig.gd"
+SaveLoadConfig="*res://util/saveSystem/SaveLoadConfig.gd"
 
 [input]
 
