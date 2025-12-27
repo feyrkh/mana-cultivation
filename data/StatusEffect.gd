@@ -2,9 +2,6 @@
 class_name StatusEffect
 extends RefCounted
 
-static func _static_init() -> void:
-	LoadSystem.register_class("StatusEffect", StatusEffect)
-
 static var DEFAULT_SCHEMA:Dictionary[String, FormFieldSchema] = {
 	"id": FormFieldSchema.int_field().with_readonly(true),
 	"data": FormFieldSchema.custom_scene_field("res://modelRenderSystem/DictionaryFormBuilder.tscn")

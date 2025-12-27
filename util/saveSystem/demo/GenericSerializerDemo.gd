@@ -8,8 +8,27 @@ func _ready():
 	#demo_1_simple_object()
 	#demo_2_nested_objects()
 	#demo_3_mixed_approaches()
-	demo_4_save_load_workflow()
-	demo_5_complex_game_state()
+	#demo_4_save_load_workflow()
+	#demo_5_complex_game_state()
+	demo_6_real_example()
+#
+func demo_6_real_example():
+	print("--- Demo 6: Spellform data ---")
+	var spellform := Spellform.new(Vector2i(3, 4))
+	var light_tile := SpellformTile.new(["glow", "sparkle"])
+	light_tile.domain = SpellDomain.new("Light").get_canonical()
+	var dark_tile := SpellformTile.new(["dim", "gloom"])
+	dark_tile.domain = light_tile.domain
+	spellform.block_slot(Vector2i(0, 0))
+	spellform.place_tile(Vector2i(1,1), light_tile)
+	spellform.place_tile(Vector2i(2, 2), dark_tile)
+	SaveSystem.save_game(InstanceRegistry.get_registry(), "spellform_test", "instance_registry", true)
+	SaveSystem.save_game(spellform, "spellform_test", "spellform")
+	var loaded_registry = LoadSystem.load_game("spellform_test", "instance_registry")
+	InstanceRegistry.set_registry(loaded_registry)
+	var loaded = LoadSystem.load_game("spellform_test", "spellform")
+	print("Restored: "+JSON.stringify(loaded))
+	pass
 
 # Demo 1: Simple object without to_dict/from_dict
 func demo_1_simple_object():

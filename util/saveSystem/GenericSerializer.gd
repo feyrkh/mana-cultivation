@@ -3,7 +3,7 @@ class_name GenericSerializer
 extends RefCounted
 
 # Serialize any object to a dictionary recursively
-static func to_dict(value) -> Variant:
+static func to_dict(value, skip_to_dict_for_registered:bool = false) -> Variant:
 	if value == null:
 		return null
 	
@@ -12,9 +12,13 @@ static func to_dict(value) -> Variant:
 		return value
 	
 	# Object with to_dict method - use it
-	if value is Object and value.has_method("to_dict"):
+	if value is Object and (skip_to_dict_for_registered == false or value is not RegisteredObject) and value.has_method("to_dict"):
 		return value.to_dict()
 	
+	# Generic Object - introspect properties
+	if value is Object:
+		return _serialize_generic_object(value, skip_to_dict_for_registered)
+
 	# Dictionary - recurse on values
 	if value is Dictionary:
 		var result = {}
@@ -23,7 +27,7 @@ static func to_dict(value) -> Variant:
 		for key in value.keys():
 			# Keys are serialized too, in case they're complex
 			var serialized_key = _serialize_dict_key(key)
-			result["data"][serialized_key] = to_dict(value[key])
+			result["data"][serialized_key] = to_dict(value[key], skip_to_dict_for_registered)
 		return result
 	
 	# Array - recurse on elements
@@ -32,7 +36,7 @@ static func to_dict(value) -> Variant:
 		result["__type__"] = "Array"
 		result["data"] = []
 		for item in value:
-			result["data"].append(to_dict(item))
+			result["data"].append(to_dict(item, skip_to_dict_for_registered))
 		return result
 	
 	# Vector types
@@ -121,9 +125,6 @@ static func to_dict(value) -> Variant:
 			"size": to_dict(value.size)
 		}
 	
-	# Generic Object - introspect properties
-	if value is Object:
-		return _serialize_generic_object(value)
 	
 	# Fallback - convert to string
 	push_warning("Unsupported type for serialization: " + str(typeof(value)) + ", converting to string")
@@ -163,7 +164,7 @@ static func _deserialize_dict_key(key_str: String) -> Variant:
 		return key_str
 
 # Serialize a generic object by introspecting its properties
-static func _serialize_generic_object(obj: Object) -> Dictionary:
+static func _serialize_generic_object(obj: Object, skip_to_dict_for_registered:bool = false) -> Dictionary:
 	var result = {}
 	result["__type__"] = "Object"
 	
@@ -196,7 +197,7 @@ static func _serialize_generic_object(obj: Object) -> Dictionary:
 		var usage = prop_info["usage"]
 		if usage & PROPERTY_USAGE_SCRIPT_VARIABLE:
 			var prop_value = obj.get(prop_name)
-			result["properties"][prop_name] = to_dict(prop_value)
+			result["properties"][prop_name] = to_dict(prop_value, skip_to_dict_for_registered)
 	
 	return result
 
@@ -378,6 +379,15 @@ static func _deserialize_generic_object(dict: Dictionary) -> Variant:
 			result[prop_name] = from_dict(properties[prop_name])
 		return result
 	
+	if obj is RegisteredObject and "__id__" in dict and "__class__" in dict:
+		# RegisteredObjects get saved as a dict like 
+		#{
+		#	"__class__": "SpellDomain",
+		#	"__id__": 1
+		#}
+		# and we must assume the canonical copies of these objects were already loaded
+		return InstanceRegistry.get_registry().get_instance(dict.get("__class__", {}), dict.get("__id__", -1))
+
 	# Use reflection to set properties
 	var properties = dict.get("properties", {})
 	for prop_name in properties.keys():
@@ -385,10 +395,9 @@ static func _deserialize_generic_object(dict: Dictionary) -> Variant:
 		
 		# Check if property exists on object
 		if prop_name in obj:
-			obj.set(prop_name, prop_value)
+			TypedPropertyAssigner.assign_property(obj, prop_name, prop_value)
 		else:
 			push_warning("Property '" + prop_name + "' not found on object, skipping")
-	
 	return obj
 
 # Helper: Deep copy any value using serialization

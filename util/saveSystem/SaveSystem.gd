@@ -5,7 +5,7 @@ extends RefCounted
 const BASE_SAVE_PATH: String = "user://saves/"
 
 # Save a collection of data models
-static func save_game(data, save_game_id: String, path: String) -> bool:
+static func save_game(data, save_game_id: String, path: String, skip_to_dict_for_registered: bool = false) -> bool:
 	var full_path = BASE_SAVE_PATH + save_game_id + "/" + path
 	
 	# Ensure directory exists
@@ -18,7 +18,7 @@ static func save_game(data, save_game_id: String, path: String) -> bool:
 		full_path += SaveLoadConfig.get_extension()
 	
 	# Serialize models
-	var serialized = GenericSerializer.to_dict(data)
+	var serialized = GenericSerializer.to_dict(data, skip_to_dict_for_registered)
 	
 	# Save based on format
 	if SaveLoadConfig.USE_JSON_FORMAT:

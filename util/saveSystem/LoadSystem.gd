@@ -150,22 +150,3 @@ static func _get_global_class(className: String):
 				return load(script_path)
 	
 	return null
-
-# Deserialize an object from dictionary
-static func _deserialize_object(dict: Dictionary):
-	var className = dict.get("__class__", "")
-	
-	# Resolve the class reference
-	var class_ref = _resolve_class(className)
-	
-	if class_ref != null and class_ref.has_method("from_dict"):
-		return class_ref.from_dict(dict)
-	
-	# If resolution failed, provide helpful error message
-	if class_ref == null:
-		push_warning("Could not resolve class for deserialization: " + className + 
-					". Make sure the class is defined with 'class_name' or registered manually.")
-	else:
-		push_warning("Class '" + className + "' found but missing from_dict() method")
-	
-	return null
