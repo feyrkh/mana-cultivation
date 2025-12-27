@@ -5,7 +5,7 @@ extends RefCounted
 const BASE_SAVE_PATH: String = "user://saves/"
 
 # Save a collection of data models
-static func save_game(models: Array, save_game_id: String, path: String) -> bool:
+static func save_game(data, save_game_id: String, path: String) -> bool:
 	var full_path = BASE_SAVE_PATH + save_game_id + "/" + path
 	
 	# Ensure directory exists
@@ -18,21 +18,16 @@ static func save_game(models: Array, save_game_id: String, path: String) -> bool
 		full_path += SaveLoadConfig.get_extension()
 	
 	# Serialize models
-	var data_array: Array = []
-	for model in models:
-		if model.has_method("to_dict"):
-			data_array.append(model.to_dict())
-		else:
-			data_array.append(_serialize_value(model))
+	var serialized = GenericSerializer.to_dict(data)
 	
 	# Save based on format
 	if SaveLoadConfig.USE_JSON_FORMAT:
-		return _save_as_json(full_path, data_array)
+		return _save_as_json(full_path, serialized)
 	else:
-		return _save_as_binary(full_path, data_array)
+		return _save_as_binary(full_path, serialized)
 
 # Save as JSON
-static func _save_as_json(file_path: String, data: Array) -> bool:
+static func _save_as_json(file_path: String, data: Variant) -> bool:
 	var file = FileAccess.open(file_path, FileAccess.WRITE)
 	if file == null:
 		push_error("Failed to open file for writing: " + file_path)
@@ -44,7 +39,7 @@ static func _save_as_json(file_path: String, data: Array) -> bool:
 	return true
 
 # Save as binary
-static func _save_as_binary(file_path: String, data: Array) -> bool:
+static func _save_as_binary(file_path: String, data: Variant) -> bool:
 	var file = FileAccess.open(file_path, FileAccess.WRITE)
 	if file == null:
 		push_error("Failed to open file for writing: " + file_path)
@@ -62,33 +57,32 @@ static func _save_as_binary(file_path: String, data: Array) -> bool:
 
 # Recursively serialize values
 static func _serialize_value(value):
-	if value == null:
-		return null
-	elif value is bool or value is int or value is float or value is String:
-		return value
-	elif value is Dictionary:
-		var result = {}
-		for key in value:
-			result[key] = _serialize_value(value[key])
-		return result
-	elif value is Array:
-		var result = []
-		for item in value:
-			result.append(_serialize_value(item))
-		return result
-	elif value.has_method("to_dict"):
-		if value.has_method("pre_save"):
-			value.pre_save()
-		var result = value.to_dict()
-		if value.has_method("post_save"):
-			value.post_save()
-		return result
-	else:
-		if value.has_method("pre_save"):
-			value.pre_save()
-		var result = GenericSerializer.to_dict(value)
-		if value.has_method("post_save"):
-			value.post_save()
-		if value.has_method("post_save"):
-			value.post_save()
-		return result
+	return GenericSerializer.to_dict(value)
+	#if value == null:
+		#return null
+	#elif value is bool or value is int or value is float or value is String or value is StringName:
+		#return value
+	#elif value is Dictionary:
+		#var result = {}
+		#for key in value:
+			#result[key] = _serialize_value(value[key])
+		#return result
+	#elif value is Array:
+		#var result = []
+		#for item in value:
+			#result.append(_serialize_value(item))
+		#return result
+	#elif value is Object and value.has_method("to_dict"):
+		#if value.has_method("pre_save"):
+			#value.pre_save()
+		#var result = value.to_dict()
+		#if value.has_method("post_save"):
+			#value.post_save()
+		#return result
+	#else:
+		#if value is Object and value.has_method("pre_save"):
+			#value.pre_save()
+		#var result = GenericSerializer.to_dict(value)
+		#if value is Object and value.has_method("post_save"):
+			#value.post_save()
+		#return result

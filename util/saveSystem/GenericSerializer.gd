@@ -1,4 +1,4 @@
-# GenericSerializer.gd
+# GenericSerializer.gd (Enhanced with reflection-based deserialization)
 class_name GenericSerializer
 extends RefCounted
 
@@ -8,7 +8,7 @@ static func to_dict(value) -> Variant:
 		return null
 	
 	# Primitives - return as-is
-	if value is bool or value is int or value is float or value is String:
+	if value is bool or value is int or value is float or value is String or value is StringName:
 		return value
 	
 	# Object with to_dict method - use it
@@ -167,11 +167,19 @@ static func _serialize_generic_object(obj: Object) -> Dictionary:
 	var result = {}
 	result["__type__"] = "Object"
 	
-	# Get class name if available
-	if obj.has_method("get_class"):
-		result["__class__"] = obj.get_class()
-	elif obj.get_script() != null:
-		result["__script__"] = obj.get_script().resource_path
+	# Store class information for reconstruction
+	var className = ""
+	if obj.get_script() != null:
+		var script = obj.get_script()
+		# Try to get class_name from script
+		if script.has_method("get_global_name"):
+			className = script.get_global_name()
+		
+		# If no class_name, store script path
+		if className == "":
+			result["__script__"] = script.resource_path
+		else:
+			result["__class__"] = className
 	
 	result["properties"] = {}
 	
@@ -205,7 +213,7 @@ static func from_dict(dict) -> Variant:
 	if not dict.has("__type__"):
 		# No type marker - might be a plain dictionary or a custom class
 		if dict.has("__class__"):
-			# Custom class with from_dict method
+			# Custom class with from_dict method or reflection
 			return _deserialize_custom_class(dict)
 		else:
 			# Plain dictionary - deserialize recursively without type wrapper
@@ -325,29 +333,63 @@ static func from_dict(dict) -> Variant:
 static func _deserialize_custom_class(dict: Dictionary) -> Variant:
 	var className = dict.get("__class__", "")
 	
-	# Check if registered in LoadSystem
-	if LoadSystem.class_registry.has(className):
+	# Try LoadSystem's automatic resolution first
+	if className != "":
+		var class_ref = LoadSystem._resolve_class(className)
+		if class_ref != null and class_ref.has_method("from_dict"):
+			return class_ref.from_dict(dict)
+	
+	# Check manual registry
+	if className != "" and LoadSystem.class_registry.has(className):
 		var class_ref = LoadSystem.class_registry[className]
 		if class_ref.has_method("from_dict"):
 			return class_ref.from_dict(dict)
 	
-	# Fallback to generic object deserialization
-	push_warning("Custom class not registered or missing from_dict: " + className)
+	# Fallback to reflection-based deserialization
 	return _deserialize_generic_object(dict)
 
-# Deserialize a generic object (best effort)
+# Deserialize a generic object using reflection
 static func _deserialize_generic_object(dict: Dictionary) -> Variant:
-	# For generic objects without a specific class, return as dictionary
-	# This is a limitation - we can't reconstruct arbitrary objects
-	push_warning("Generic object deserialization: returning as dictionary")
+	var className = dict.get("__class__", "")
+	var script_path = dict.get("__script__", "")
 	
+	# Try to instantiate the class
+	var obj = null
+	
+	# Method 1: Try class_name resolution
+	if className != "":
+		var class_ref = LoadSystem._resolve_class(className)
+		if class_ref != null:
+			obj = class_ref.new()
+	
+	# Method 2: Try script path
+	if obj == null and script_path != "":
+		if ResourceLoader.exists(script_path):
+			var script = load(script_path)
+			if script != null:
+				obj = script.new()
+	
+	# If we couldn't instantiate, return as dictionary
+	if obj == null:
+		push_warning("Could not instantiate class for deserialization: " + className)
+		var properties = dict.get("properties", {})
+		var result = {}
+		for prop_name in properties.keys():
+			result[prop_name] = from_dict(properties[prop_name])
+		return result
+	
+	# Use reflection to set properties
 	var properties = dict.get("properties", {})
-	var result = {}
-	
 	for prop_name in properties.keys():
-		result[prop_name] = from_dict(properties[prop_name])
+		var prop_value = from_dict(properties[prop_name])
+		
+		# Check if property exists on object
+		if prop_name in obj:
+			obj.set(prop_name, prop_value)
+		else:
+			push_warning("Property '" + prop_name + "' not found on object, skipping")
 	
-	return result
+	return obj
 
 # Helper: Deep copy any value using serialization
 static func deep_copy(value) -> Variant:

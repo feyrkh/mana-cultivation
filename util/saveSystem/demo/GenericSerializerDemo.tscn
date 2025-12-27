@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://cpk2tt3fbjwv4"]
 
-[ext_resource type="Script" uid="uid://bwjpqdll1aegq" path="res://util/saveSystem/GenericSerializerDemo.gd" id="1_2em5f"]
+[ext_resource type="Script" uid="uid://bwjpqdll1aegq" path="res://util/saveSystem/demo/GenericSerializerDemo.gd" id="1_2em5f"]
 
 [node name="GenericSerializerDemo" type="Control"]
 layout_mode = 3

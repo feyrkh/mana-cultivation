@@ -2,9 +2,6 @@
 class_name Character
 extends RefCounted
 
-static func _static_init() -> void:
-	LoadSystem.register_class("Character", Character)
-
 static var DEFAULT_SCHEMA:Dictionary[String, FormFieldSchema] = {
 	"status_effects": FormFieldSchema.array_field(StatusEffect.DEFAULT_SCHEMA).with_readonly(true),
 	"hp": FormFieldSchema.int_field().with_hidden(false)

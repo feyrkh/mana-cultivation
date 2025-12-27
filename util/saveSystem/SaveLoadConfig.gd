@@ -3,7 +3,7 @@
 extends Node
 
 # Set to true for JSON, false for binary
-const USE_JSON_FORMAT: bool = false
+const USE_JSON_FORMAT: bool = true
 
 # File extensions
 const JSON_EXT: String = ".json"

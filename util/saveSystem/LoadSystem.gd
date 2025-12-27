@@ -11,7 +11,7 @@ static func register_class(className: String, class_ref) -> void:
 	class_registry[className] = class_ref
 
 # Load game data from save
-static func load_game(save_game_id: String, path: String) -> Array:
+static func load_game(save_game_id: String, path: String) -> Variant:
 	var base_path = BASE_SAVE_PATH + save_game_id + "/" + path
 	
 	# Try both extensions to autodetect format
@@ -32,26 +32,26 @@ static func load_game(save_game_id: String, path: String) -> Array:
 		return []
 	
 	# Load based on detected format
-	var data_array: Array = []
+	var data
 	if is_json:
-		data_array = _load_from_json(file_path)
+		data = _load_from_json(file_path)
 	else:
-		data_array = _load_from_binary(file_path)
-	
-	if data_array.is_empty():
-		return []
-	
+		data = _load_from_binary(file_path)
+	return GenericSerializer.from_dict(data)
+	#if data_array.is_empty():
+		#return []
+	#
 	# Deserialize models
-	var models: Array = []
-	for data in data_array:
-		if data is Dictionary and data.has("__class__"):
-			var model = _deserialize_object(data)
-			if model != null:
-				models.append(model)
-		else:
-			models.append(data)
-	
-	return models
+	#var models: Array = []
+	#for data in data_array:
+		#if data is Dictionary and data.has("__class__"):
+			#var model = _deserialize_object(data)
+			#if model != null:
+				#models.append(model)
+		#else:
+			#models.append(data)
+	#
+	#return models
 
 # Detect if file is JSON by checking first character
 static func _is_json_file(file_path: String) -> bool:
@@ -67,7 +67,7 @@ static func _is_json_file(file_path: String) -> bool:
 	return first_byte == 91 or first_byte == 32 or first_byte == 9 or first_byte == 10
 
 # Load from JSON
-static func _load_from_json(file_path: String) -> Array:
+static func _load_from_json(file_path: String) -> Variant:
 	var file = FileAccess.open(file_path, FileAccess.READ)
 	if file == null:
 		push_error("Failed to open file for reading: " + file_path)
@@ -83,10 +83,7 @@ static func _load_from_json(file_path: String) -> Array:
 		return []
 	
 	var data = json.get_data()
-	if data is Array:
-		return data
-	else:
-		return [data]
+	return data
 
 # Load from binary
 static func _load_from_binary(file_path: String) -> Array:
@@ -108,10 +105,7 @@ static func _load_from_binary(file_path: String) -> Array:
 	file.close()
 	
 	var data = bytes_to_var(bytes)
-	if data is Array:
-		return data
-	else:
-		return [data]
+	return data
 
 # Resolve a class reference from a class name string
 static func _resolve_class(className: String):
@@ -128,21 +122,26 @@ static func _resolve_class(className: String):
 		if instance != null:
 			var class_ref = instance.get_script()
 			instance.free() if instance is Object else null
+			class_registry[className] = class_ref
+			print("LoadSystem: Registering builtin class '%s'" % class_ref)
 			return class_ref
 	
 	# Try using the global script class registry
 	# In Godot 4, classes with class_name are available globally
 	var global_class = _get_global_class(className)
 	if global_class != null:
+		class_registry[className] = global_class
+		print("LoadSystem: Registering global class '%s'" % className)
 		return global_class
 	
+	push_error("LoadSystem: Failed to find class with name '%s'" % className)
 	return null
 
 # Get a global script class by name
 static func _get_global_class(className: String):
 	# In Godot 4, we can access script classes through ProjectSettings
 	# Get the list of global script classes
-	var global_classes = ProjectSettings.get_setting("_global_script_classes", [])
+	var global_classes = ProjectSettings.get_global_class_list()
 	
 	for class_info in global_classes:
 		if class_info.get("class", "") == className:
