@@ -29,7 +29,7 @@ static func load_from_file(save_prefix:String, save_file:String) -> void:
 	# Clear everything, load the file as an InstanceRegistry, and copy over everything except `_touched`, which gets updated when the main game loads
 	var old_registry = _instance
 	old_registry._touched = {}
-	var loaded:InstanceRegistry = LoadSystem.load_game(save_prefix, save_file)
+	var loaded:InstanceRegistry = LoadSystem.load_object(save_prefix, save_file)
 	if loaded:
 		loaded._touched = old_registry._touched
 		_instance = loaded
@@ -52,9 +52,13 @@ func register_instance(type_name: String, id: int, instance) -> void:
 	if not registry.has(type_name):
 		registry[type_name] = {}
 		_touched[type_name] = {}
+		id_counters[type_name] = id + 1
 	
 	registry[type_name][id] = instance
 	_touched[type_name][id] = true
+	if id_counters[type_name] <= id:
+		id_counters[type_name] = id + 1
+		print("Loaded a ", type_name, " with a higher ID than we've seen before, updating ID to ", id+1)
 
 # Get a registered instance by type and ID
 func get_instance(type_name: String, id: int):

@@ -1,14 +1,14 @@
-class_name Spellform
+class_name SpellForm
 extends RefCounted
 
 enum SlotState {
 	EMPTY,      # Slot exists but has no tile
-	OCCUPIED,   # Slot contains a SpellformTile
+	OCCUPIED,   # Slot contains a SpellFormTile
 	BLOCKED     # Slot cannot be used
 }
 
 # Grid structure: Dictionary with Vector2i keys mapping to slot data
-# Each slot stores: { "state": SlotState, "tile": SpellformTile or null }
+# Each slot stores: { "state": SlotState, "tile": SpellFormTile or null }
 var grid: Dictionary = {}
 var grid_size: Vector2i = Vector2i(3, 3)  # Default 3x3 grid
 
@@ -38,13 +38,13 @@ func get_slot_state(pos: Vector2i) -> SlotState:
 	return grid[pos]["state"]
 
 # Get tile at position (returns null if empty or blocked)
-func get_tile(pos: Vector2i) -> SpellformTile:
+func get_tile(pos: Vector2i) -> SpellFormTile:
 	if not is_valid_position(pos):
 		return null
 	return grid[pos]["tile"]
 
 # Place a tile at position
-func place_tile(pos: Vector2i, tile: SpellformTile) -> bool:
+func place_tile(pos: Vector2i, tile: SpellFormTile) -> bool:
 	if not is_valid_position(pos):
 		return false
 	if grid[pos]["state"] == SlotState.BLOCKED:
@@ -55,7 +55,7 @@ func place_tile(pos: Vector2i, tile: SpellformTile) -> bool:
 	return true
 
 # Remove tile at position
-func remove_tile(pos: Vector2i) -> SpellformTile:
+func remove_tile(pos: Vector2i) -> SpellFormTile:
 	if not is_valid_position(pos):
 		return null
 	

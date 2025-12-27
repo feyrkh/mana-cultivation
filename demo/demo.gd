@@ -25,7 +25,7 @@ func example_save_and_load():
 		#print("Game saved successfully!")
 	
 	# Load the characters back
-	var loaded_characters = LoadSystem.load_game(
+	var loaded_characters = LoadSystem.load_object(
 		"save_slot_1",
 		"characters/party.dat"
 	)

@@ -13,11 +13,11 @@ func _ready():
 	demo_6_real_example()
 #
 func demo_6_real_example():
-	print("--- Demo 6: Spellform data ---")
-	var spellform := Spellform.new(Vector2i(3, 4))
-	var light_tile := SpellformTile.new(["glow", "sparkle"])
+	print("--- Demo 6: SpellForm data ---")
+	var spellform := SpellForm.new(Vector2i(3, 4))
+	var light_tile := SpellFormTile.new(["glow", "sparkle"])
 	light_tile.domain = SpellDomain.new("Light").get_canonical()
-	var dark_tile := SpellformTile.new(["dim", "gloom"])
+	var dark_tile := SpellFormTile.new(["dim", "gloom"])
 	dark_tile.domain = light_tile.domain
 	spellform.block_slot(Vector2i(0, 0))
 	spellform.place_tile(Vector2i(1,1), light_tile)
@@ -28,7 +28,7 @@ func demo_6_real_example():
 	InstanceRegistry.save_to_file("spellform_test", "instance_registry")
 	InstanceRegistry.load_from_file("spellform_test", "instance_registry")
 	var loaded_registry = InstanceRegistry.get_registry()
-	var loaded:Spellform = LoadSystem.load_game("spellform_test", "spellform")
+	var loaded:SpellForm = LoadSystem.load_object("spellform_test", "spellform")
 	print("Before cleanup:")
 	loaded_registry.print_registry()
 	loaded_registry.clean_unused()
@@ -177,7 +177,7 @@ func demo_4_save_load_workflow():
 	print("✓ Saved boss state")
 	
 	# Load from file
-	var loaded = LoadSystem.load_game("reflection_test", "boss_state.dat")
+	var loaded = LoadSystem.load_object("reflection_test", "boss_state.dat")
 	
 	print("✓ Loaded boss state")
 	print("\nBoss state:")
@@ -237,7 +237,7 @@ func demo_5_complex_game_state():
 	SaveSystem.save_game(dungeon_state, "dungeon_test", "dungeon.dat")
 	
 	# Load
-	var loaded = LoadSystem.load_game("dungeon_test", "dungeon.dat")
+	var loaded = LoadSystem.load_object("dungeon_test", "dungeon.dat")
 	
 	# Deserialize
 	var restored = GenericSerializer.from_dict(loaded)

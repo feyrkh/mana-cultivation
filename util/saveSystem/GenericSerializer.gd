@@ -174,7 +174,7 @@ static func _deserialize_dict_key(key_str: String) -> Variant:
 # Serialize a generic object by introspecting its properties
 static func _serialize_generic_object(obj: Object, skip_to_dict_for_registered:bool = false) -> Dictionary:
 	var result = {}
-	result["__type__"] = "Object"
+	#result["__type__"] = "Object" # this is implicit, we'll write the __class__ field
 	
 	# Store class information for reconstruction
 	var className = ""
@@ -221,8 +221,8 @@ static func from_dict(dict) -> Variant:
 	# Check for type marker
 	if not dict.has("__type__"):
 		# No type marker - might be a plain dictionary or a custom class
-		if dict.has("__class__"):
-			# Custom class with from_dict method or reflection
+		if dict.has("__class__") or dict.has("__script__"):
+			# Custom class with from_dict method or reflection, type is implicitly "Object"
 			return _deserialize_custom_class(dict)
 		else:
 			# Plain dictionary - deserialize recursively without type wrapper
@@ -230,7 +230,6 @@ static func from_dict(dict) -> Variant:
 			for key in dict.keys():
 				result[key] = from_dict(dict[key])
 			return result
-	
 	var type_name = dict["__type__"]
 	
 	# Handle each type

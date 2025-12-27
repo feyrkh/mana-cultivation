@@ -1,0 +1,14 @@
+{
+	"__class__": "SpellFormTile",
+	"properties": {
+		"domain": {
+			"__class__": "SpellDomain",
+			"__id__": 1
+		},
+		"effects": {
+			"__type__": "Array",
+			"data": []
+		},
+		"id": 1
+	}
+}

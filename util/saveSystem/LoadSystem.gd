@@ -11,7 +11,7 @@ static func register_class(className: String, class_ref) -> void:
 	class_registry[className] = class_ref
 
 # Load game data from save
-static func load_game(save_game_id: String, path: String) -> Variant:
+static func load_object(save_game_id: String, path: String) -> Variant:
 	var base_path = BASE_SAVE_PATH + save_game_id + "/" + path
 	
 	# Try both extensions to autodetect format

@@ -1,7 +1,7 @@
 # A flexible resource loading system that recursively searches directories
 # and provides singleton/clone loading with filtering capabilities
 class_name ResourceMgr
-extends RefCounted
+extends Node
 
 # Configuration - override these in subclasses
 var base_path: String = ""
@@ -46,6 +46,7 @@ func _scan_directory(dir_path: String) -> void:
 	
 	while file_name != "":
 		var full_path = dir_path.path_join(file_name)
+		var relative_path_without_suffix = get_path_without_suffix(file_name)
 		
 		if dir.current_is_dir():
 			# Recursively scan subdirectories, skip hidden dirs
@@ -57,10 +58,10 @@ func _scan_directory(dir_path: String) -> void:
 				# Optionally validate the file by attempting to load it
 				if validate_on_index:
 					if _validate_file(full_path):
-						_file_paths.append(full_path)
+						_file_paths.append(relative_path_without_suffix)
 					# If validation fails, file is skipped (error already logged)
 				else:
-					_file_paths.append(full_path)
+					_file_paths.append(relative_path_without_suffix)
 		
 		file_name = dir.get_next()
 	
@@ -152,19 +153,9 @@ func _instantiate_from_data(data) -> Variant:
 	if resource_class == null:
 		push_error("No resource_class configured")
 		return null
-	
-	# If the class has a from_dict method, use it
-	if resource_class.has_method("from_dict"):
-		return resource_class.from_dict(data)
-	
-	# Otherwise, try to instantiate and set properties directly
-	var instance = resource_class.new()
-	
-	if data is Dictionary:
-		for key in data.keys():
-			if key in instance:
-				instance.set(key, data[key])
-	
+	var instance = GenericSerializer.from_dict(data)
+	if instance is RegisteredObject:
+		instance = instance.get_canonical()
 	return instance
 
 # Filter paths by prefix
@@ -223,3 +214,20 @@ func get_path_without_suffix(path: String) -> String:
 	if path.ends_with(file_suffix):
 		return path.substr(0, path.length() - file_suffix.length())
 	return path
+
+func load_all_data() -> Dictionary:
+	var result = {}
+	for path in get_all_paths():
+		result[path] = load_clone(path)
+	return result
+
+func _save_to_file(path:String, data, indent_char="\t") -> void:
+	var file = FileAccess.open(base_path.path_join(path + file_suffix), FileAccess.WRITE)
+	if file != null:
+		file.store_string(JSON.stringify(data, indent_char))
+		file.close()
+
+func save_all_data(path_to_data_dict:Dictionary) -> void:
+	for path in path_to_data_dict:
+		var data_to_save = GenericSerializer.to_dict(path_to_data_dict[path], true)
+		_save_to_file(path, data_to_save)
