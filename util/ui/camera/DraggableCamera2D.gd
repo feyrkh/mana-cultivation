@@ -223,16 +223,30 @@ func _apply_bounds_correction(delta: float) -> void:
 	var viewport_max = camera_position + viewport_half_size
 	
 	var correction = Vector2.ZERO
-	
-	# Calculate corrections for each edge
-	if viewport_min.x < bounds_rect.position.x:
+
+	# Calculate corrections for each axis
+	# If viewport exceeds bounds on both sides, center on that axis
+	var exceeds_left = viewport_min.x < bounds_rect.position.x
+	var exceeds_right = viewport_max.x > bounds_rect.end.x
+	var exceeds_top = viewport_min.y < bounds_rect.position.y
+	var exceeds_bottom = viewport_max.y > bounds_rect.end.y
+
+	if exceeds_left and exceeds_right:
+		# Viewport larger than bounds - center horizontally
+		var bounds_center_x = bounds_rect.position.x + bounds_rect.size.x / 2.0
+		correction.x = bounds_center_x - camera_position.x
+	elif exceeds_left:
 		correction.x = bounds_rect.position.x - viewport_min.x
-	elif viewport_max.x > bounds_rect.end.x:
+	elif exceeds_right:
 		correction.x = bounds_rect.end.x - viewport_max.x
-	
-	if viewport_min.y < bounds_rect.position.y:
+
+	if exceeds_top and exceeds_bottom:
+		# Viewport larger than bounds - center vertically
+		var bounds_center_y = bounds_rect.position.y + bounds_rect.size.y / 2.0
+		correction.y = bounds_center_y - camera_position.y
+	elif exceeds_top:
 		correction.y = bounds_rect.position.y - viewport_min.y
-	elif viewport_max.y > bounds_rect.end.y:
+	elif exceeds_bottom:
 		correction.y = bounds_rect.end.y - viewport_max.y
 	
 	# Apply correction smoothly
