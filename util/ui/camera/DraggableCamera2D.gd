@@ -68,30 +68,26 @@ func _gui_input(event: InputEvent) -> void:
 			accept_event()
 
 func _input(event: InputEvent) -> void:
-	# Handle pan globally so content doesn't block it
+	# Handle pan button
 	if event is InputEventMouseButton:
 		if event.button_index == pan_button and enable_pan:
-			# Check if mouse is over this camera
-			var mouse_pos = get_global_mouse_position()
-			var rect = get_global_rect()
-			if rect.has_point(mouse_pos):
-				if event.pressed:
+			if event.pressed:
+				# Only start pan if mouse is over this camera
+				var mouse_pos = get_global_mouse_position()
+				var rect = get_global_rect()
+				if rect.has_point(mouse_pos):
 					_start_pan(get_local_mouse_position())
-				else:
+					get_viewport().set_input_as_handled()
+			else:
+				# Always end pan on release (even if mouse is outside window)
+				if _is_panning:
 					_end_pan()
-				get_viewport().set_input_as_handled()
-	
+					get_viewport().set_input_as_handled()
+
 	# Handle pan drag
 	elif event is InputEventMouseMotion and _is_panning:
 		_update_pan(get_local_mouse_position())
 		get_viewport().set_input_as_handled()
-	
-	# Handle global mouse release to end drag (moved from separate handler)
-	if event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
-			if _is_panning:
-				_end_drag()
-				get_viewport().set_input_as_handled()
 
 func _end_drag() -> void:
 	# This was in the old _input handler, keep it for compatibility
