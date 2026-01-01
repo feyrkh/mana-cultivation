@@ -1,6 +1,7 @@
 {
 	"__class__": "SpellFormTile",
 	"properties": {
+		"label": "Optical Refraction",
 		"base_effect": {
 			"__type__": "Dictionary",
 			"data": {

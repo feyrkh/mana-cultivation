@@ -3,18 +3,47 @@ extends Control
 @onready var tile_grid: SpellFormTileGrid = $SpellFormTileGrid
 @onready var info_label: Label = $InfoLabel
 
+var _toolbar: TileToolbar
+
 func _ready() -> void:
 	# Connect signals
 	tile_grid.cell_hovered.connect(_on_cell_hovered)
 	tile_grid.cell_unhovered.connect(_on_cell_unhovered)
 	tile_grid.cell_clicked.connect(_on_cell_clicked)
+	tile_grid.tile_dropped.connect(_on_tile_dropped)
 
 	# Create a test SpellForm and load it
 	var spellform = _create_test_spellform()
 	tile_grid.set_spellform(spellform)
 
+	# Create toolbar at the bottom
+	_setup_toolbar()
+
 	# Center the camera on the grid
 	tile_grid.center_on_grid()
+
+func _setup_toolbar() -> void:
+	_toolbar = TileToolbar.new()
+	_toolbar.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	_toolbar.offset_top = -60  # Height for toolbar
+	_toolbar.set_target_grid(tile_grid)
+	add_child(_toolbar)
+
+	# Add some tiles to the toolbar
+	var toolbar_tiles: Array[SpellFormTile] = [
+		ResourceMgr.load_clone(SpellFormTile, "ponder"),
+		ResourceMgr.load_clone(SpellFormTile, "optical_refraction"),
+	]
+	#for i in range(8):
+		#var tile = SpellFormTile.new()
+		#tile.id = "tb_%d" % i
+		#toolbar_tiles.append(tile)
+
+
+	_toolbar.set_tiles(toolbar_tiles)
+
+	# Adjust grid to not overlap with toolbar
+	tile_grid.offset_bottom = -60
 
 func _create_test_spellform() -> SpellForm:
 	# Create an unbounded SpellForm (no fixed size)
@@ -59,6 +88,11 @@ func _on_cell_clicked(grid_pos: Vector2i, slot: SpellFormSlot) -> void:
 		info_label.text = "Clicked: (%d, %d) - Empty" % [grid_pos.x, grid_pos.y]
 	else:
 		info_label.text = "Clicked: (%d, %d)" % [grid_pos.x, grid_pos.y]
+
+func _on_tile_dropped(grid_pos: Vector2i, slot: SpellFormSlot, tile: SpellFormTile) -> void:
+	info_label.text = "Dropped: %s at (%d, %d)" % [tile.id, grid_pos.x, grid_pos.y]
+	# Actually place the tile
+	tile_grid.set_tile(grid_pos, tile)
 
 func _input(event: InputEvent) -> void:
 	# Press A to add a random cell

@@ -4,6 +4,7 @@ extends Control
 signal cell_hovered(grid_pos: Vector2i, slot: SpellFormSlot)
 signal cell_unhovered(grid_pos: Vector2i, slot: SpellFormSlot)
 signal cell_clicked(grid_pos: Vector2i, slot: SpellFormSlot)
+signal tile_dropped(grid_pos: Vector2i, slot: SpellFormSlot, tile: SpellFormTile)
 
 enum CellState { MISSING, EMPTY, OCCUPIED }
 
@@ -36,16 +37,9 @@ func _draw() -> void:
 			var outline_color = Color(0.5, 0.5, 0.5)
 			_draw_outline(rect, outline_color)
 		CellState.OCCUPIED:
-			# White fill with gray outline
-			var fill_color = Color.WHITE
-			var outline_color = Color(0.5, 0.5, 0.5)
-			draw_rect(rect.grow(-OUTLINE_WIDTH), fill_color)
-			_draw_outline(rect, outline_color)
-
-			# Draw tile ID text
+			# Let the tile draw itself
 			if slot and slot.spell_form_tile:
-				var tile_id = slot.spell_form_tile.id
-				_draw_centered_text(tile_id, rect, Color.BLACK)
+				slot.spell_form_tile.draw_tile(self, rect)
 
 func _draw_outline(rect: Rect2, color: Color) -> void:
 	# Top
@@ -56,14 +50,6 @@ func _draw_outline(rect: Rect2, color: Color) -> void:
 	draw_rect(Rect2(rect.position, Vector2(OUTLINE_WIDTH, rect.size.y)), color)
 	# Right
 	draw_rect(Rect2(Vector2(rect.end.x - OUTLINE_WIDTH, rect.position.y), Vector2(OUTLINE_WIDTH, rect.size.y)), color)
-
-func _draw_centered_text(text: String, rect: Rect2, color: Color) -> void:
-	var font = ThemeDB.fallback_font
-	var font_size = ThemeDB.fallback_font_size
-	var text_size = font.get_string_size(text, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size)
-	var text_pos = rect.position + (rect.size - text_size) / 2.0
-	text_pos.y += text_size.y * 0.75  # Adjust for baseline
-	draw_string(font, text_pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, color)
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
@@ -102,3 +88,24 @@ func set_missing() -> void:
 func set_grid_position(pos: Vector2i) -> void:
 	grid_position = pos
 	position = Vector2(pos.x * CELL_SIZE, pos.y * CELL_SIZE)
+
+func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
+	# Only accept SpellFormTile drops
+	if not data is SpellFormTile:
+		return false
+
+	# Must have a slot (cell must exist)
+	if slot == null:
+		return false
+
+	# Check if slot accepts this tile
+	return slot.can_accept_tile.call(data)
+
+func _drop_data(_at_position: Vector2, data: Variant) -> void:
+	if not data is SpellFormTile:
+		return
+
+	if slot == null:
+		return
+
+	tile_dropped.emit(grid_position, slot, data as SpellFormTile)

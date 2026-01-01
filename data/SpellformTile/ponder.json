@@ -1,6 +1,7 @@
 {
 	"__class__": "SpellFormTile",
 	"properties": {
+		"label": "Ponder",
 		"base_effect": {
 			"__type__": "Dictionary",
 			"data": {

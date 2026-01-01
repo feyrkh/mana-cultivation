@@ -4,6 +4,7 @@ extends Control
 signal cell_hovered(grid_pos: Vector2i, slot: SpellFormSlot)
 signal cell_unhovered(grid_pos: Vector2i, slot: SpellFormSlot)
 signal cell_clicked(grid_pos: Vector2i, slot: SpellFormSlot)
+signal tile_dropped(grid_pos: Vector2i, slot: SpellFormSlot, tile: SpellFormTile)
 
 const CELL_SIZE := SpellFormGridCell.CELL_SIZE
 const BOUNDS_PADDING := 400.0
@@ -152,6 +153,7 @@ func _create_cell_visual(grid_pos: Vector2i) -> void:
 	cell.cell_hovered.connect(_on_cell_hovered)
 	cell.cell_unhovered.connect(_on_cell_unhovered)
 	cell.cell_clicked.connect(_on_cell_clicked)
+	cell.tile_dropped.connect(_on_tile_dropped)
 	_cells[grid_pos] = cell
 	_grid_container.add_child(cell)
 
@@ -163,6 +165,7 @@ func _remove_cell_visual(grid_pos: Vector2i) -> void:
 	cell.cell_hovered.disconnect(_on_cell_hovered)
 	cell.cell_unhovered.disconnect(_on_cell_unhovered)
 	cell.cell_clicked.disconnect(_on_cell_clicked)
+	cell.tile_dropped.disconnect(_on_tile_dropped)
 	cell.queue_free()
 	_cells.erase(grid_pos)
 
@@ -210,6 +213,9 @@ func _on_cell_unhovered(grid_pos: Vector2i, slot: SpellFormSlot) -> void:
 
 func _on_cell_clicked(grid_pos: Vector2i, slot: SpellFormSlot) -> void:
 	cell_clicked.emit(grid_pos, slot)
+
+func _on_tile_dropped(grid_pos: Vector2i, slot: SpellFormSlot, tile: SpellFormTile) -> void:
+	tile_dropped.emit(grid_pos, slot, tile)
 
 # Camera access
 func get_camera() -> DraggableCamera2D:
