@@ -74,6 +74,7 @@ var schemas: Dictionary = {}
 @export var explicit_fields_only: bool = false
 
 # UI References
+var header_container: HBoxContainer
 var form_container: VBoxContainer
 var button_container: HBoxContainer
 var edit_button: Button
@@ -82,32 +83,46 @@ var cancel_button: Button
 
 # Field node registry for reading values back
 var field_nodes: Dictionary = {}
+# Track if form has any editable fields
+var has_editable_fields: bool = false
 
 func _init():
 	_setup_ui()
 
 func _setup_ui():
-	# Main container
+	# Header container with edit button on the right
+	header_container = HBoxContainer.new()
+	header_container.name = "HeaderContainer"
+	add_child(header_container)
+
+	# Spacer to push edit button to the right
+	var spacer = Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header_container.add_child(spacer)
+
+	# Edit button (pencil emoji, top right)
+	edit_button = Button.new()
+	edit_button.text = "✏️"
+	edit_button.pressed.connect(_on_edit_pressed)
+	edit_button.visible = false  # Hidden until we know there are editable fields
+	header_container.add_child(edit_button)
+
+	# Main form container
 	form_container = VBoxContainer.new()
 	form_container.name = "FormContainer"
 	add_child(form_container)
-	
-	# Button container
+
+	# Button container for confirm/cancel (at bottom)
 	button_container = HBoxContainer.new()
 	button_container.name = "ButtonContainer"
 	add_child(button_container)
-	
-	edit_button = Button.new()
-	edit_button.text = "Edit"
-	edit_button.pressed.connect(_on_edit_pressed)
-	button_container.add_child(edit_button)
-	
+
 	confirm_button = Button.new()
 	confirm_button.text = "Confirm"
 	confirm_button.pressed.connect(_on_confirm_pressed)
 	confirm_button.visible = false
 	button_container.add_child(confirm_button)
-	
+
 	cancel_button = Button.new()
 	cancel_button.text = "Cancel"
 	cancel_button.pressed.connect(_on_cancel_pressed)
@@ -133,7 +148,8 @@ func _rebuild_form() -> void:
 	for child in form_container.get_children():
 		child.queue_free()
 	field_nodes.clear()
-	
+	has_editable_fields = false
+
 	# Build form for each model
 	for model_key in models.keys():
 		var model = models[model_key]
@@ -144,7 +160,7 @@ func _rebuild_form() -> void:
 			if schema == null:
 				schema = {}
 		_build_model_section(model_key, model, schema)
-	
+
 	# Update button visibility
 	_update_button_visibility()
 
@@ -222,9 +238,11 @@ func _build_field(field_path: String, prop_name: String, value, field_schema: Fo
 	if field_schema.scene:
 		_build_custom_scene_field(field_path, prop_name, value, field_schema)
 		return
-	
+
 	# Check if field is readonly
 	var is_readonly = field_schema.readonly
+	if not is_readonly:
+		has_editable_fields = true
 	var label_text = field_schema.label if field_schema.label else prop_name.capitalize()
 	
 	# Create row container
@@ -263,7 +281,8 @@ func _build_field(field_path: String, prop_name: String, value, field_schema: Fo
 # Build a field using a custom scene
 func _build_custom_scene_field(field_path: String, prop_name: String, value, field_schema: FormFieldSchema) -> void:
 	var scene_path = field_schema.scene
-	
+	has_editable_fields = true  # Custom scenes are considered editable
+
 	# Parse field path to get model
 	var parts = field_path.split(".")
 	var model_key = parts[0]
@@ -543,7 +562,7 @@ func _update_all_field_visibility() -> void:
 
 # Update button visibility based on mode
 func _update_button_visibility() -> void:
-	edit_button.visible = not edit_mode
+	edit_button.visible = not edit_mode and has_editable_fields
 	confirm_button.visible = edit_mode
 	cancel_button.visible = edit_mode
 
