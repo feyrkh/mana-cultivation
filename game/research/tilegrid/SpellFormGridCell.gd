@@ -4,7 +4,6 @@ extends Control
 signal cell_hovered(grid_pos: Vector2i, slot: SpellFormSlot)
 signal cell_unhovered(grid_pos: Vector2i, slot: SpellFormSlot)
 signal cell_clicked(grid_pos: Vector2i, slot: SpellFormSlot)
-signal tile_dropped(grid_pos: Vector2i, slot: SpellFormSlot, tile: SpellFormTile)
 
 enum CellState { MISSING, EMPTY, OCCUPIED }
 
@@ -88,24 +87,3 @@ func set_missing() -> void:
 func set_grid_position(pos: Vector2i) -> void:
 	grid_position = pos
 	position = Vector2(pos.x * CELL_SIZE, pos.y * CELL_SIZE)
-
-func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
-	# Only accept SpellFormTile drops
-	if not data is SpellFormTile:
-		return false
-
-	# Must have a slot (cell must exist)
-	if slot == null:
-		return false
-
-	# Check if slot accepts this tile
-	return slot.can_accept_tile.call(data)
-
-func _drop_data(_at_position: Vector2, data: Variant) -> void:
-	if not data is SpellFormTile:
-		return
-
-	if slot == null:
-		return
-
-	tile_dropped.emit(grid_position, slot, data as SpellFormTile)

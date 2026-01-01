@@ -10,7 +10,7 @@ func _ready() -> void:
 	tile_grid.cell_hovered.connect(_on_cell_hovered)
 	tile_grid.cell_unhovered.connect(_on_cell_unhovered)
 	tile_grid.cell_clicked.connect(_on_cell_clicked)
-	tile_grid.tile_dropped.connect(_on_tile_dropped)
+	tile_grid.tile_placed.connect(_on_tile_placed)
 
 	# Create a test SpellForm and load it
 	var spellform = _create_test_spellform()
@@ -89,8 +89,8 @@ func _on_cell_clicked(grid_pos: Vector2i, slot: SpellFormSlot) -> void:
 	else:
 		info_label.text = "Clicked: (%d, %d)" % [grid_pos.x, grid_pos.y]
 
-func _on_tile_dropped(grid_pos: Vector2i, slot: SpellFormSlot, tile: SpellFormTile) -> void:
-	info_label.text = "Dropped: %s at (%d, %d)" % [tile.id, grid_pos.x, grid_pos.y]
+func _on_tile_placed(grid_pos: Vector2i, slot: SpellFormSlot, tile: SpellFormTile) -> void:
+	info_label.text = "Placed: %s at (%d, %d)" % [tile.id, grid_pos.x, grid_pos.y]
 	# Actually place the tile
 	tile_grid.set_tile(grid_pos, tile)
 

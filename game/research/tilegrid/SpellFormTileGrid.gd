@@ -4,7 +4,8 @@ extends Control
 signal cell_hovered(grid_pos: Vector2i, slot: SpellFormSlot)
 signal cell_unhovered(grid_pos: Vector2i, slot: SpellFormSlot)
 signal cell_clicked(grid_pos: Vector2i, slot: SpellFormSlot)
-signal tile_dropped(grid_pos: Vector2i, slot: SpellFormSlot, tile: SpellFormTile)
+signal tile_placed(grid_pos: Vector2i, slot: SpellFormSlot, tile: SpellFormTile)
+signal held_tile_changed(tile: SpellFormTile)
 
 const CELL_SIZE := SpellFormGridCell.CELL_SIZE
 const BOUNDS_PADDING := 400.0
@@ -22,6 +23,11 @@ var _grid_container: Control
 var _min_bounds: Vector2i = Vector2i.ZERO
 var _max_bounds: Vector2i = Vector2i.ZERO
 var _has_cells: bool = false
+
+# Held tile for click-to-place interaction
+var _held_tile: SpellFormTile = null
+var _cursor_preview: Control = null
+var _hovered_grid_pos: Variant = null  # Vector2i or null
 
 func _ready() -> void:
 	_setup_camera()
@@ -153,7 +159,6 @@ func _create_cell_visual(grid_pos: Vector2i) -> void:
 	cell.cell_hovered.connect(_on_cell_hovered)
 	cell.cell_unhovered.connect(_on_cell_unhovered)
 	cell.cell_clicked.connect(_on_cell_clicked)
-	cell.tile_dropped.connect(_on_tile_dropped)
 	_cells[grid_pos] = cell
 	_grid_container.add_child(cell)
 
@@ -165,7 +170,6 @@ func _remove_cell_visual(grid_pos: Vector2i) -> void:
 	cell.cell_hovered.disconnect(_on_cell_hovered)
 	cell.cell_unhovered.disconnect(_on_cell_unhovered)
 	cell.cell_clicked.disconnect(_on_cell_clicked)
-	cell.tile_dropped.disconnect(_on_tile_dropped)
 	cell.queue_free()
 	_cells.erase(grid_pos)
 
@@ -206,16 +210,23 @@ func _update_bounds() -> void:
 	_camera.set_bounds(bounds_rect)
 
 func _on_cell_hovered(grid_pos: Vector2i, slot: SpellFormSlot) -> void:
+	_hovered_grid_pos = grid_pos
+	_update_cursor_preview_tint()
 	cell_hovered.emit(grid_pos, slot)
 
 func _on_cell_unhovered(grid_pos: Vector2i, slot: SpellFormSlot) -> void:
+	_hovered_grid_pos = null
+	_update_cursor_preview_tint()
 	cell_unhovered.emit(grid_pos, slot)
 
 func _on_cell_clicked(grid_pos: Vector2i, slot: SpellFormSlot) -> void:
+	# If holding a tile, try to place it
+	if _held_tile != null and slot != null:
+		if slot.can_accept_tile.call(_held_tile):
+			tile_placed.emit(grid_pos, slot, _held_tile)
+			# Don't clear held tile - allow multiple placements
+			return
 	cell_clicked.emit(grid_pos, slot)
-
-func _on_tile_dropped(grid_pos: Vector2i, slot: SpellFormSlot, tile: SpellFormTile) -> void:
-	tile_dropped.emit(grid_pos, slot, tile)
 
 # Camera access
 func get_camera() -> DraggableCamera2D:
@@ -229,3 +240,98 @@ func center_on_grid() -> void:
 	var center_x = (_min_bounds.x + _max_bounds.x + 1) * CELL_SIZE / 2.0
 	var center_y = (_min_bounds.y + _max_bounds.y + 1) * CELL_SIZE / 2.0
 	_camera.set_camera_position(Vector2(center_x, center_y))
+
+# Held tile management
+func set_held_tile(tile: SpellFormTile) -> void:
+	_held_tile = tile
+	_update_cursor_preview()
+	held_tile_changed.emit(tile)
+
+func get_held_tile() -> SpellFormTile:
+	return _held_tile
+
+func clear_held_tile() -> void:
+	_held_tile = null
+	_destroy_cursor_preview()
+	held_tile_changed.emit(null)
+
+func has_held_tile() -> bool:
+	return _held_tile != null
+
+func _input(event: InputEvent) -> void:
+	# Right-click to clear held tile
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+			if _held_tile != null:
+				clear_held_tile()
+				get_viewport().set_input_as_handled()
+
+func _update_cursor_preview() -> void:
+	_destroy_cursor_preview()
+	if _held_tile == null:
+		return
+
+	_cursor_preview = Control.new()
+	_cursor_preview.custom_minimum_size = Vector2(CELL_SIZE, CELL_SIZE)
+	_cursor_preview.size = Vector2(CELL_SIZE, CELL_SIZE)
+	_cursor_preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_cursor_preview.z_index = 100  # Draw on top
+
+	var tile_ref = _held_tile
+	_cursor_preview.draw.connect(func():
+		var rect = Rect2(Vector2.ZERO, Vector2(CELL_SIZE, CELL_SIZE))
+		tile_ref.draw_tile(_cursor_preview, rect)
+	)
+
+	add_child(_cursor_preview)
+	_update_cursor_preview_tint()
+	set_process(true)
+
+func _destroy_cursor_preview() -> void:
+	if _cursor_preview != null:
+		_cursor_preview.queue_free()
+		_cursor_preview = null
+	set_process(false)
+
+func _process(_delta: float) -> void:
+	if _cursor_preview == null:
+		set_process(false)
+		return
+
+	# Scale preview to match camera zoom
+	var zoom = _camera.get_zoom()
+	_cursor_preview.scale = Vector2(zoom, zoom)
+
+	# Snap to cell if over a valid spot, otherwise follow cursor
+	if _hovered_grid_pos != null and _check_held_tile_validity():
+		# Snap to cell position
+		var cell_world_pos = Vector2(_hovered_grid_pos.x * CELL_SIZE, _hovered_grid_pos.y * CELL_SIZE)
+		_cursor_preview.position = _camera._world_to_screen(cell_world_pos)
+	else:
+		# Follow cursor, offset so cursor is at center (accounting for scaled size)
+		var mouse_pos = get_local_mouse_position()
+		var scaled_offset = Vector2(CELL_SIZE * zoom / 2.0, CELL_SIZE * zoom / 2.0)
+		_cursor_preview.position = mouse_pos - scaled_offset
+
+func _update_cursor_preview_tint() -> void:
+	if _cursor_preview == null:
+		return
+
+	var is_valid = _check_held_tile_validity()
+	if is_valid:
+		_cursor_preview.modulate = Color.WHITE
+	else:
+		_cursor_preview.modulate = Color(1, 0.3, 0.3)  # Red tint
+
+func _check_held_tile_validity() -> bool:
+	if _held_tile == null:
+		return false
+
+	if _hovered_grid_pos == null:
+		return false
+
+	var slot = get_slot(_hovered_grid_pos)
+	if slot == null:
+		return false
+
+	return slot.can_accept_tile.call(_held_tile)
