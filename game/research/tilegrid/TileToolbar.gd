@@ -1,6 +1,10 @@
 class_name TileToolbar
 extends PanelContainer
 
+signal item_hovered(item: TileToolbarItem)
+signal item_unhovered(item: TileToolbarItem)
+signal item_clicked(item: TileToolbarItem)
+
 const ITEM_SPACING := 4
 
 var _flow_container: HFlowContainer
@@ -30,6 +34,9 @@ func add_tile(tile: SpellFormTile) -> TileToolbarItem:
 		item.set_target_grid(_target_grid)
 	_items.append(item)
 	_flow_container.add_child(item)
+	item.mouse_entered.connect(_on_item_mouse_entered.bind(item))
+	item.mouse_exited.connect(_on_item_mouse_exited.bind(item))
+	item.clicked.connect(_on_item_clicked.bind(item))
 	return item
 
 func remove_tile(tile: SpellFormTile) -> void:
@@ -52,3 +59,12 @@ func set_target_grid(grid: SpellFormTileGrid) -> void:
 
 func get_items() -> Array[TileToolbarItem]:
 	return _items
+
+func _on_item_mouse_entered(item: TileToolbarItem) -> void:
+	item_hovered.emit(item)
+
+func _on_item_mouse_exited(item: TileToolbarItem) -> void:
+	item_unhovered.emit(item)
+
+func _on_item_clicked(item: TileToolbarItem) -> void:
+	item_clicked.emit(item)

@@ -1,6 +1,8 @@
 class_name TileToolbarItem
 extends Control
 
+signal clicked()
+
 const ITEM_SIZE := 64.0
 
 var tile: SpellFormTile
@@ -27,6 +29,7 @@ func _draw() -> void:
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+			clicked.emit()
 			if tile != null and _target_grid != null:
 				_target_grid.set_held_tile(tile)
 				accept_event()

@@ -30,7 +30,7 @@ text = "Test"
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="SpellFormTileGrid" parent="VBoxContainer/HBoxContainer" instance=ExtResource("2_p3pwt")]
+[node name="TileGrid" parent="VBoxContainer/HBoxContainer" instance=ExtResource("2_p3pwt")]
 unique_name_in_owner = true
 layout_mode = 2
 
