@@ -8,8 +8,10 @@ signal cell_clicked(grid_pos: Vector2i, slot: SpellFormSlot)
 const CELL_SIZE := SpellFormGridCell.CELL_SIZE
 const BOUNDS_PADDING := 400.0
 
-# Sparse grid: Vector2i -> SpellFormSlot (null slot = empty cell, missing key = no cell)
-var _grid: Dictionary = {}  # Dictionary[Vector2i, SpellFormSlot]
+# The SpellForm being displayed (cloned from input)
+var _spellform: SpellForm = null
+
+# Visual cells
 var _cells: Dictionary = {}  # Dictionary[Vector2i, SpellFormGridCell]
 
 var _camera: DraggableCamera2D
@@ -35,20 +37,115 @@ func _setup_camera() -> void:
 	_grid_container.name = "GridContainer"
 	_camera.add_content(_grid_container)
 
-# Add a cell at the given grid position
-# If slot is null, creates an empty cell; if slot has a tile, creates an occupied cell
-func add_cell(grid_pos: Vector2i, slot: SpellFormSlot = null) -> SpellFormGridCell:
-	# Remove existing cell if present
-	if _cells.has(grid_pos):
-		remove_cell(grid_pos)
+# Set the SpellForm to display (creates a deep clone)
+func set_spellform(spellform: SpellForm) -> void:
+	_clear_cells()
+	_spellform = spellform.clone()
+	_rebuild_cells()
 
-	# Create the slot if not provided
+# Get the internal SpellForm (the cloned copy)
+func get_spellform() -> SpellForm:
+	return _spellform
+
+# Add a cell/slot at the given grid position
+func add_cell(grid_pos: Vector2i, tile: SpellFormTile = null) -> bool:
+	if _spellform == null:
+		_spellform = SpellForm.new()
+
+	var slot = _spellform.add_slot(grid_pos)
 	if slot == null:
-		slot = SpellFormSlot.new()
+		return false
 
-	_grid[grid_pos] = slot
+	if tile != null:
+		slot.spell_form_tile = tile
 
-	# Create visual cell
+	_create_cell_visual(grid_pos)
+	_update_bounds()
+	return true
+
+# Remove a cell/slot at the given grid position
+func remove_cell(grid_pos: Vector2i) -> void:
+	if _spellform == null:
+		return
+
+	_spellform.remove_slot(grid_pos)
+	_remove_cell_visual(grid_pos)
+	_update_bounds()
+
+# Get the slot at a grid position
+func get_slot(grid_pos: Vector2i) -> SpellFormSlot:
+	if _spellform == null:
+		return null
+	return _spellform.get_slot(grid_pos)
+
+# Check if a cell exists at a grid position
+func has_cell(grid_pos: Vector2i) -> bool:
+	if _spellform == null:
+		return false
+	return _spellform.has_slot(grid_pos)
+
+# Set the tile for a cell (creates the cell if it doesn't exist)
+func set_tile(grid_pos: Vector2i, tile: SpellFormTile) -> bool:
+	if _spellform == null:
+		_spellform = SpellForm.new()
+
+	var result = _spellform.place_tile(grid_pos, tile)
+	if result:
+		if not _cells.has(grid_pos):
+			_create_cell_visual(grid_pos)
+		else:
+			_update_cell_visual(grid_pos)
+		_update_bounds()
+	return result
+
+# Clear the tile from a cell (keeps the cell as empty)
+func clear_tile(grid_pos: Vector2i) -> SpellFormTile:
+	if _spellform == null:
+		return null
+
+	var tile = _spellform.remove_tile(grid_pos)
+	_update_cell_visual(grid_pos)
+	return tile
+
+# Get all grid positions that have cells
+func get_cell_positions() -> Array[Vector2i]:
+	if _spellform == null:
+		return []
+	return _spellform.get_all_positions()
+
+# Get all occupied positions (cells with tiles)
+func get_occupied_positions() -> Array[Vector2i]:
+	if _spellform == null:
+		return []
+	return _spellform.get_occupied_positions()
+
+# Clear all cells
+func clear_all() -> void:
+	_clear_cells()
+	_spellform = null
+	_update_bounds()
+
+func _clear_cells() -> void:
+	for pos in _cells.keys():
+		_remove_cell_visual(pos)
+	_cells.clear()
+
+func _rebuild_cells() -> void:
+	_clear_cells()
+	if _spellform == null:
+		return
+
+	for pos in _spellform.grid.keys():
+		_create_cell_visual(pos)
+
+	_update_bounds()
+
+func _create_cell_visual(grid_pos: Vector2i) -> void:
+	if _cells.has(grid_pos):
+		return
+
+	var slot = _spellform.get_slot(grid_pos) if _spellform else null
+
 	var cell = SpellFormGridCell.new()
 	cell.set_grid_position(grid_pos)
 	cell.set_slot(slot)
@@ -58,11 +155,7 @@ func add_cell(grid_pos: Vector2i, slot: SpellFormSlot = null) -> SpellFormGridCe
 	_cells[grid_pos] = cell
 	_grid_container.add_child(cell)
 
-	_update_bounds()
-	return cell
-
-# Remove a cell at the given grid position
-func remove_cell(grid_pos: Vector2i) -> void:
+func _remove_cell_visual(grid_pos: Vector2i) -> void:
 	if not _cells.has(grid_pos):
 		return
 
@@ -71,86 +164,17 @@ func remove_cell(grid_pos: Vector2i) -> void:
 	cell.cell_unhovered.disconnect(_on_cell_unhovered)
 	cell.cell_clicked.disconnect(_on_cell_clicked)
 	cell.queue_free()
-
 	_cells.erase(grid_pos)
-	_grid.erase(grid_pos)
 
-	_update_bounds()
-
-# Get the slot at a grid position (returns null if no cell exists)
-func get_slot(grid_pos: Vector2i) -> SpellFormSlot:
-	return _grid.get(grid_pos, null)
-
-# Check if a cell exists at a grid position
-func has_cell(grid_pos: Vector2i) -> bool:
-	return _grid.has(grid_pos)
-
-# Set the tile for a cell (creates the cell if it doesn't exist)
-func set_tile(grid_pos: Vector2i, tile: SpellFormTile) -> void:
-	var slot: SpellFormSlot
-	if _grid.has(grid_pos):
-		slot = _grid[grid_pos]
-	else:
-		slot = SpellFormSlot.new()
-		add_cell(grid_pos, slot)
-
-	slot.spell_form_tile = tile
-
-	if _cells.has(grid_pos):
-		_cells[grid_pos].set_slot(slot)
-
-# Clear the tile from a cell (keeps the cell as empty)
-func clear_tile(grid_pos: Vector2i) -> void:
-	if not _grid.has(grid_pos):
+func _update_cell_visual(grid_pos: Vector2i) -> void:
+	if not _cells.has(grid_pos):
 		return
 
-	var slot = _grid[grid_pos]
-	slot.spell_form_tile = null
-
-	if _cells.has(grid_pos):
-		_cells[grid_pos].set_slot(slot)
-
-# Get all grid positions that have cells
-func get_cell_positions() -> Array[Vector2i]:
-	var positions: Array[Vector2i] = []
-	for pos in _grid.keys():
-		positions.append(pos)
-	return positions
-
-# Get all occupied positions (cells with tiles)
-func get_occupied_positions() -> Array[Vector2i]:
-	var positions: Array[Vector2i] = []
-	for pos in _grid.keys():
-		var slot = _grid[pos]
-		if slot and slot.spell_form_tile != null:
-			positions.append(pos)
-	return positions
-
-# Clear all cells
-func clear_all() -> void:
-	for pos in _cells.keys().duplicate():
-		remove_cell(pos)
-	_update_bounds()
-
-# Load from a SpellForm object
-func load_from_spellform(spellform: SpellForm) -> void:
-	clear_all()
-
-	for pos in spellform.grid.keys():
-		var grid_data = spellform.grid[pos]
-		var state = grid_data["state"]
-		var tile = grid_data["tile"]
-
-		# Skip blocked slots - they become missing in our grid
-		if state == SpellForm.SlotState.BLOCKED:
-			continue
-
-		var slot = SpellFormSlot.new()
-		slot.spell_form_tile = tile
-		add_cell(pos, slot)
+	var slot = _spellform.get_slot(grid_pos) if _spellform else null
+	_cells[grid_pos].set_slot(slot)
 
 func _update_bounds() -> void:
-	if _grid.is_empty():
+	if _spellform == null or _spellform.grid.is_empty():
 		_has_cells = false
 		_min_bounds = Vector2i.ZERO
 		_max_bounds = Vector2i.ZERO
@@ -160,7 +184,7 @@ func _update_bounds() -> void:
 	_has_cells = true
 	var first = true
 
-	for pos: Vector2i in _grid.keys():
+	for pos: Vector2i in _spellform.grid.keys():
 		if first:
 			_min_bounds = pos
 			_max_bounds = pos
