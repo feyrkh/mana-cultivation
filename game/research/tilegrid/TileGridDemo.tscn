@@ -1,0 +1,33 @@
+[gd_scene load_steps=3 format=3 uid="uid://dsvjwj1p62m34"]
+
+[ext_resource type="Script" uid="uid://bjj0umpi740mt" path="res://game/research/tilegrid/TileGridDemo.gd" id="1_demo"]
+[ext_resource type="Script" uid="uid://con1r1jg57qcg" path="res://game/research/tilegrid/SpellFormTileGrid.gd" id="2_grid"]
+
+[node name="TileGridDemo" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_demo")
+
+[node name="SpellFormTileGrid" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("2_grid")
+
+[node name="InfoLabel" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = -30.0
+offset_right = 400.0
+grow_vertical = 0
+text = "Hover or click on cells. Press A to add, R to remove."
