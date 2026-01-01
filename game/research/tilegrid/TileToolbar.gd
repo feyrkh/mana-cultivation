@@ -13,6 +13,7 @@ func _init() -> void:
 func _setup_ui() -> void:
 	# Create flow container for wrapping layout
 	_flow_container = HFlowContainer.new()
+	_flow_container.alignment = FlowContainer.ALIGNMENT_CENTER
 	_flow_container.name = "FlowContainer"
 	_flow_container.add_theme_constant_override("h_separation", ITEM_SPACING)
 	_flow_container.add_theme_constant_override("v_separation", ITEM_SPACING)

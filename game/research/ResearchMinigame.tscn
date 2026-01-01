@@ -1,0 +1,40 @@
+[gd_scene load_steps=4 format=3 uid="uid://cuqtv7fkwjc25"]
+
+[ext_resource type="Script" uid="uid://bjab5j2t7ncvl" path="res://game/research/ResearchMinigame.gd" id="1_cjnka"]
+[ext_resource type="PackedScene" uid="uid://clqb4nutrrct0" path="res://game/research/tilegrid/SpellFormTileGrid.tscn" id="2_p3pwt"]
+[ext_resource type="Script" uid="uid://0ewlqx6xbd34" path="res://game/research/tilegrid/TileToolbar.gd" id="3_p3pwt"]
+
+[node name="ResearchMinigame" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_cjnka")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="HeaderLabel" type="Label" parent="VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Test"
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="SpellFormTileGrid" parent="VBoxContainer/HBoxContainer" instance=ExtResource("2_p3pwt")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="TileToolbar" type="PanelContainer" parent="VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+script = ExtResource("3_p3pwt")

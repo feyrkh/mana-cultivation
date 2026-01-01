@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://tile_grid_scene"]
+[gd_scene load_steps=2 format=3 uid="uid://clqb4nutrrct0"]
 
-[ext_resource type="Script" path="res://game/research/tilegrid/SpellFormTileGrid.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://con1r1jg57qcg" path="res://game/research/tilegrid/SpellFormTileGrid.gd" id="1_script"]
 
 [node name="SpellFormTileGrid" type="Control"]
 layout_mode = 3
@@ -9,4 +9,6 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 script = ExtResource("1_script")
