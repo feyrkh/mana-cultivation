@@ -1,0 +1,90 @@
+{
+	"__class__": "SpellFormTile",
+	"properties": {
+		"base_effect": {
+			"__type__": "Dictionary",
+			"data": {
+				"data": {
+					"__type__": "Dictionary",
+					"data": {
+
+					}
+				}
+			}
+		},
+		"category": "consensus",
+		"domain": null,
+		"effects": {
+			"__type__": "Array",
+			"data": []
+		},
+		"id": "optical_refraction",
+		"incoming_modifiers": {
+			"__type__": "Array",
+			"data": []
+		},
+		"inertia": 0,
+		"inertia_max": 5,
+		"integration": 0,
+		"integration_max": 5,
+		"outgoing_adjacency_effects": {
+			"__type__": "Array",
+			"data": [
+				{
+					"__class__": "AdjacencyEffect",
+					"properties": {
+						"amount": 1.0,
+						"conditions": {
+							"__type__": "Dictionary",
+							"data": {
+								"min_integration": 1
+							}
+						},
+						"effect_type": "resource_delta",
+						"extras": {
+							"__type__": "Dictionary",
+							"data": {
+								"note": "Bonus for neighboring consensus tiles"
+							}
+						},
+						"resource": "cohesion",
+						"target_tag": "consensus"
+					}
+				}
+			]
+		},
+		"synergies": {
+			"__type__": "Array",
+			"data": [
+				{
+					"__class__": "SynergyEffect",
+					"properties": {
+						"amount": 2.0,
+						"effect_type": "resource_delta",
+						"extras": {
+							"__type__": "Dictionary",
+							"data": {
+								"note": "Optical synergy activated"
+							}
+						},
+						"pattern": {
+							"__type__": "Array",
+							"data": [
+								"consensus",
+								"tenuous"
+							]
+						},
+						"resource": "efficiency",
+						"unlock_at_integration": 3
+					}
+				}
+			]
+		},
+		"volatility_profile": {
+			"__type__": "Dictionary",
+			"data": {
+
+			}
+		}
+	}
+}

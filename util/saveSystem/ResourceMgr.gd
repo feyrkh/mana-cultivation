@@ -15,6 +15,12 @@ static func register_manager(className, mgr:ResourceMgr):
 		className = className.get_global_name()
 	resource_managers[className] = mgr
 
+static func load_clone(className, objectPath:String) -> Variant:
+	return get_manager_for(className)._load_clone(objectPath)
+
+static func load_singleton(className, objectPath:String) -> Variant:
+	return get_manager_for(className)._load_singleton(objectPath)
+
 # Configuration - override these in subclasses
 var base_path: String = ""
 var file_suffix: String = ".json"
@@ -99,7 +105,7 @@ func get_all_paths() -> Array[String]:
 	return _file_paths.duplicate()
 
 # Load a resource as a singleton (cached instance)
-func load_singleton(path: String) -> Variant:
+func _load_singleton(path: String) -> Variant:
 	if not _indexed:
 		index()
 	
@@ -118,7 +124,7 @@ func load_singleton(path: String) -> Variant:
 	return instance
 
 # Load a resource as a clone (fresh copy each time)
-func load_clone(path: String) -> Variant:
+func _load_clone(path: String) -> Variant:
 	if not _indexed:
 		index()
 	
@@ -232,7 +238,7 @@ func get_path_without_suffix(path: String) -> String:
 func load_all_data() -> Dictionary:
 	var result = {}
 	for path in get_all_paths():
-		result[path] = load_clone(path)
+		result[path] = _load_clone(path)
 	return result
 
 func _save_to_file(path:String, data, indent_char="\t") -> void:

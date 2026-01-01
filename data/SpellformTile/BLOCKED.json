@@ -10,13 +10,13 @@
 		"category": "",
 		"domain": {
 			"__class__": "SpellDomain",
-			"__id__": "light"
+			"__id__": "BLOCKED"
 		},
 		"effects": {
 			"__type__": "Array",
 			"data": []
 		},
-		"id": "ponder",
+		"id": "BLOCKED",
 		"incoming_modifiers": {
 			"__type__": "Array",
 			"data": []

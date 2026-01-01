@@ -346,12 +346,12 @@ static func _deserialize_custom_class(dict: Dictionary) -> Variant:
 		var class_ref = LoadSystem._resolve_class(className)
 		if class_ref != null and class_ref.has_method("from_dict"):
 			return class_ref.from_dict(dict)
-	
-	# Check manual registry
-	if className != "" and LoadSystem.class_registry.has(className):
-		var class_ref = LoadSystem.class_registry[className]
-		if class_ref.has_method("from_dict"):
-			return class_ref.from_dict(dict)
+	#
+	## Check manual registry
+	#if className != "" and LoadSystem.class_registry.has(className):
+		#var class_ref = LoadSystem.class_registry[className]
+		#if class_ref.has_method("from_dict"):
+			#return class_ref.from_dict(dict)
 	
 	# Fallback to reflection-based deserialization
 	return _deserialize_generic_object(dict)
@@ -396,7 +396,7 @@ static func _deserialize_generic_object(dict: Dictionary) -> Variant:
 		var registered_id = dict.get("__id__", "")
 		var cached = InstanceRegistry.get_registry().get_instance(className, registered_id)
 		if !cached:
-			cached = ResourceMgr.get_manager_for(className).load_singleton(registered_id)
+			cached = ResourceMgr.get_manager_for(className)._load_singleton(registered_id)
 		return cached
 
 	# Use reflection to set properties
